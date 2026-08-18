@@ -50,6 +50,7 @@
   <button class="p" id="b-clean">Release INV-88213 &mdash; M. Santos Oliveira</button>
   <button class="p" id="b-hit">Release INV-88214 &mdash; V. Petrov</button>
   <button class="g" id="b-reset">Reset</button>
+  <a href="/audit"><button class="g">Audit trail</button></a>
  </div>
 </div>
 
@@ -113,7 +114,8 @@ function decisionCard(){
  return '<div class="card"><div class="lbl">Human decision required</div>'
  +'<div class="row"><button class="clear" id="d-clear">Clear &mdash; release payment</button>'
  +'<button class="esc" id="d-esc">Escalate &mdash; block payment</button></div>'
- +'<div class="note">The agent cannot dispose of this alert. It has stopped and is waiting.</div></div>';
+ +'<div class="note">The agent cannot dispose of this alert. It has stopped and is waiting.<br>'
+ +'Check reference <code>'+cur.record.reference+'</code> \u2014 recorded, open.</div></div>';
 }
 
 async function run(id){
@@ -126,7 +128,8 @@ async function run(id){
   $("stage").innerHTML='<div class="banner ok">No matches. Payment released automatically.</div>'
    +paymentCard(r.payment)+screenCard(r.screen)
    +'<div class="card"><div class="lbl">Outcome</div><div class="big">'+r.payment.amount
-   +' released</div><div class="note">Total compliance cost: 2\u00A2. No human touched this.</div></div>';
+   +' released</div><div class="note">Total compliance cost: 2\u00A2. No human touched this.<br>'
+   +'Recorded as <code>'+r.record.reference+'</code>.</div></div>';
   return;
  }
 
@@ -136,8 +139,10 @@ async function run(id){
  $("d-esc").onclick=()=>decide(false);
 }
 
-function decide(cleared){
+async function decide(cleared){
  const p=cur.payment;
+ const d=await post("/api/dispose",{reference:cur.record.reference,
+                    disposition:cleared?"cleared":"escalated"});
  $("stage").innerHTML=(cleared
   ?'<div class="banner ok">Cleared by reviewer. Payment released.</div>'
   :'<div class="banner stop">Escalated. Payment blocked \u2014 not settled.</div>')
@@ -145,7 +150,11 @@ function decide(cleared){
   +'<div class="card"><div class="lbl">Outcome</div><div class="big">'
   +(cleared?p.amount+' released':p.amount+' held')+'</div>'
   +'<div class="note">Decision by human reviewer, recorded against '+p.ref
-  +'. Compliance cost 7\u00A2 \u2014 the agent assembled the file, the reviewer judged it.</div></div>';
+  +' as check <code>'+cur.record.reference+'</code> at '
+  +(d.record?new Date(d.record.disposed_at).toLocaleTimeString():'now')
+  +'. Compliance cost 7\u00A2 \u2014 the agent assembled the file, the reviewer judged it.</div>'
+  +'<div class="row" style="margin-top:12px"><a href="/audit"><button class="g">'
+  +'View audit trail &rarr;</button></a></div></div>';
 }
 
 $("b-clean").onclick=()=>run("clean");

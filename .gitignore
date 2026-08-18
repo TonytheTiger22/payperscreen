@@ -4,3 +4,4 @@ client.js
 
 demo.js
 .env
+audit.db*
