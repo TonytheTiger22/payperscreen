@@ -1,25 +1,36 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Agent payment control</title>
+<title>Screening API — demo</title>
 <style>
- :root{--ink:#16191d;--dim:#5f6a75;--line:#e0e4e9;--go:#1a7f4b;--stop:#b3261e;--amber:#a4600a}
+ :root{--ink:#16191d;--dim:#5f6a75;--line:#e0e4e9;--go:#1a7f4b;--stop:#b3261e;--amber:#a4600a;
+       --ours:#1a2634;--theirs:#8e97a1}
  *{box-sizing:border-box}
  body{margin:0;background:#f5f7f9;color:var(--ink);
       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;
       display:flex;justify-content:center;padding:32px 18px 90px}
- main{width:100%;max-width:760px}
+ main{width:100%;max-width:780px}
  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
  .sub{color:var(--dim);margin:0 0 24px;font-size:15px}
- .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:14px}
+ .zone{border-radius:15px;padding:15px;margin-bottom:16px}
+ .zone.ours{background:#eef2f6;border:2px solid var(--ours)}
+ .zone.theirs{background:#fafbfc;border:2px dashed #c4ccd4}
+ .ztag{font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;
+       padding:0 4px 11px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+ .zone.ours .ztag{color:var(--ours)}
+ .zone.theirs .ztag{color:var(--theirs)}
+ .ztag em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;font-size:12.5px}
+ .card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:18px;margin-bottom:11px}
+ .card:last-child{margin-bottom:0}
  .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin-bottom:9px}
  button{font:inherit;font-weight:640;border:0;border-radius:9px;padding:12px 20px;cursor:pointer}
- .p{background:#1a2634;color:#fff}.p:disabled{opacity:.4;cursor:default}
+ .p{background:var(--ours);color:#fff}
  .g{background:#fff;border:2px solid var(--line);color:var(--dim);padding:10px 16px}
  .clear{background:var(--go);color:#fff}.esc{background:var(--stop);color:#fff}
  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
- .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:15px}
+ .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:15px;gap:14px}
  .kv span:first-child{color:var(--dim)}
+ .kv b{text-align:right;word-break:break-word}
  table{width:100%;border-collapse:collapse;font-size:15px;margin-top:4px}
  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
     color:var(--dim);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--line)}
@@ -27,28 +38,26 @@
  tr.no td{background:#fff6f5}
  .tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px}
  .tag.y{background:#e6f4ec;color:var(--go)}.tag.n{background:#fdeceb;color:var(--stop)}
- .banner{border-radius:11px;padding:15px 17px;font-size:16px;font-weight:600;margin-bottom:14px}
+ .banner{border-radius:10px;padding:13px 15px;font-size:15.5px;font-weight:600;margin-bottom:11px}
  .banner.ok{background:#e6f4ec;color:#12603a}
  .banner.warn{background:#fdf3e3;color:var(--amber)}
  .banner.stop{background:#fdeceb;color:var(--stop)}
- .note{font-size:13px;color:var(--dim);margin-top:10px;font-weight:400}
- .narr{font-size:15px;line-height:1.6;margin:0}
- .chk{font-size:14px;padding:4px 0;color:var(--dim)}
- .chk b{color:var(--ink);font-weight:600}
+ .note{font-size:13px;color:var(--dim);margin-top:10px;font-weight:400;line-height:1.5}
  .cost{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;
        border-bottom:1px solid #eef1f4;color:var(--dim)}
  .cost:last-child{border:0}
+ code{font:12.5px ui-monospace,Menlo,monospace;background:#eef2f6;padding:1px 5px;border-radius:4px}
  a{color:#1858c4}
- .big{font-size:22px;font-weight:700;letter-spacing:-.01em}
+ .big{font-size:21px;font-weight:700;letter-spacing:-.01em}
 </style></head><body><main>
-<h1>Agent payment control</h1>
-<p class="sub">An agent is releasing a vendor payment. It must screen the counterparty first.</p>
+<h1>Sanctions screening API</h1>
+<p class="sub">We return a match result. What the customer does with it is their system, not ours.</p>
 
 <div class="card">
- <div class="lbl">Choose a counterparty</div>
+ <div class="lbl">Customer sends a subject to screen</div>
  <div class="row">
-  <button class="p" id="b-clean">Release INV-88213 &mdash; M. Santos Oliveira</button>
-  <button class="p" id="b-hit">Release INV-88214 &mdash; V. Petrov</button>
+  <button class="p" id="b-clean">Screen &mdash; M. Santos Oliveira</button>
+  <button class="p" id="b-hit">Screen &mdash; V. Petrov</button>
   <button class="g" id="b-reset">Reset</button>
   <a href="/audit"><button class="g">Audit trail</button></a>
  </div>
@@ -57,7 +66,7 @@
 <div id="stage"></div>
 
 <div class="card">
- <div class="lbl">What the agent spent</div>
+ <div class="lbl">What the customer paid us</div>
  <div id="ledger" class="note">Nothing yet.</div>
 </div>
 </main>
@@ -69,7 +78,7 @@ const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/js
 let cur=null;
 
 function ledger(l){
- $("ledger").innerHTML = l.lines.length
+ $("ledger").innerHTML=l.lines.length
   ? l.lines.map(x=>'<div class="cost"><span>'+x.label+'</span><span>'+c(x.price)
       +' \u00B7 '+x.ms+' ms'+(x.tx?' \u00B7 <a target="_blank" href="https://sepolia.basescan.org/tx/'
       +x.tx+'">tx</a>':'')+'</span></div>').join('')
@@ -78,87 +87,108 @@ function ledger(l){
   : "Nothing yet.";
 }
 
+function ours(inner){
+ return '<div class="zone ours"><div class="ztag"><span>What we return</span>'
+  +'<em>our product &mdash; priced per check</em></div>'+inner+'</div>';
+}
+function theirs(inner){
+ return '<div class="zone theirs"><div class="ztag"><span>Customer\u2019s own system</span>'
+  +'<em>illustrative &mdash; not part of our service</em></div>'+inner+'</div>';
+}
+
+function checkCard(r,s){
+ return '<div class="card"><div class="lbl">Check record</div>'
+ +'<div class="kv"><span>Reference</span><b><code>'+r.reference+'</code></b></div>'
+ +'<div class="kv"><span>Performed at</span><b>'+new Date(r.performed_at).toISOString()+'</b></div>'
+ +'<div class="kv"><span>Subject screened</span><b>'+r.subject_name
+   +(r.subject_dob?' \u00B7 '+r.subject_dob:'')+'</b></div>'
+ +'<div class="kv"><span>Lists</span><b>'+s.listsChecked.join(", ")+'</b></div>'
+ +'<div class="kv"><span>List version</span><b><code>'+r.list_version+'</code></b></div>'
+ +'<div class="kv"><span>Record hash</span><b><code>'+r.record_hash.slice(0,22)+'\u2026</code></b></div>'
+ +'</div>';
+}
+
+function resultCard(s){
+ return '<div class="card"><div class="lbl">Result returned</div>'
+ +'<div class="kv"><span>Matches</span><b>'+s.hitCount+'</b></div>'
+ +(s.hitCount?'<div class="kv"><span>Listed party</span><b>'+s.hits[0].name+'</b></div>'
+   +'<div class="kv"><span>Source list</span><b>'+s.hits[0].list+'</b></div>'
+   +'<div class="kv"><span>Match score</span><b>'+s.hits[0].score+'</b></div>':'')
+ +'<div class="note">We return whether the subject matches and on what basis. '
+ +'We do not assess, recommend, or decide.</div></div>';
+}
+
+function comparisonCard(x){
+ const rows=x.fields.map(f=>'<tr class="'+(f.agree?'':'no')+'"><td>'+f.field+'</td><td>'
+   +f.subject+'</td><td>'+f.listed+'</td><td><span class="tag '+(f.agree?'y':'n')+'">'
+   +(f.agree?'agrees':'differs')+'</span></td></tr>').join('');
+ return '<div class="card"><div class="lbl">Field comparison</div>'
+ +'<table><tr><th>Field</th><th>Subject supplied</th><th>Listed party</th><th></th></tr>'+rows+'</table>'
+ +'<div class="note">'+x.meta.list+' '+x.meta.listVersion+' \u00B7 '+x.meta.program
+ +' \u00B7 '+x.meta.uid+' \u00B7 matched on: '+x.meta.matchedOn+'<br>'
+ +'Deterministic field-by-field comparison. No model output, no inference.</div></div>';
+}
+
 function paymentCard(p){
- return '<div class="card"><div class="lbl">Payment pending release</div>'
+ return '<div class="card"><div class="lbl">Their pending payment</div>'
  +'<div class="kv"><span>Reference</span><b>'+p.ref+'</b></div>'
  +'<div class="kv"><span>Counterparty</span><b>'+p.vendor+'</b></div>'
  +'<div class="kv"><span>Amount</span><b>'+p.amount+'</b></div>'
  +'<div class="kv"><span>Purpose</span><b>'+p.purpose+'</b></div></div>';
 }
 
-function screenCard(s){
- return '<div class="card"><div class="lbl">Screening result &mdash; purchased 2\u00A2</div>'
- +'<div class="kv"><span>Lists checked</span><b>'+s.listsChecked.join(", ")+'</b></div>'
- +'<div class="kv"><span>Matches</span><b>'+s.hitCount+'</b></div>'
- +(s.hitCount?'<div class="kv"><span>Top match</span><b>'+s.hits[0].name+' \u2014 '
-   +s.hits[0].list+' \u2014 score '+s.hits[0].score+'</b></div>':'')+'</div>';
+function reviewCard(x){
+ return '<div class="card"><div class="lbl">Their review layer</div>'
+ +'<p style="margin:0;font-size:15px;line-height:1.6">'+x.narrative+'</p>'
+ +'<div class="note">Built by the customer on top of our comparison. Not supplied by us.</div></div>';
 }
 
-function contextCard(x){
- const rows=x.fields.map(f=>'<tr class="'+(f.agree?'':'no')+'"><td>'+f.field+'</td><td>'
-   +f.subject+'</td><td>'+f.listed+'</td><td><span class="tag '+(f.agree?'y':'n')+'">'
-   +(f.agree?'agrees':'differs')+'</span></td></tr>').join('');
- const checks=x.completeness.map(k=>'<div class="chk">'+(k.ok?'\u2713':'\u2717')
-   +' <b>'+k.check+'</b>'+(k.ok?'':' \u2014 not available')+'</div>').join('');
- return '<div class="card"><div class="lbl">Field comparison &mdash; purchased 5\u00A2</div>'
- +'<table><tr><th>Field</th><th>Your subject</th><th>Listed party</th><th></th></tr>'+rows+'</table>'
- +'<div class="note">'+x.meta.list+' '+x.meta.listVersion+' \u00B7 '+x.meta.program
- +' \u00B7 '+x.meta.uid+' \u00B7 matched on: '+x.meta.matchedOn+'</div></div>'
- +'<div class="card"><div class="lbl">Narrative summary</div><p class="narr">'+x.narrative+'</p>'
- +'<div class="note">This summary states no conclusion and makes no recommendation. '
- +'Disposition is reserved to the reviewer.</div></div>'
- +'<div class="card"><div class="lbl">Completeness check</div>'+checks+'</div>';
-}
-
-function decisionCard(){
- return '<div class="card"><div class="lbl">Human decision required</div>'
- +'<div class="row"><button class="clear" id="d-clear">Clear &mdash; release payment</button>'
- +'<button class="esc" id="d-esc">Escalate &mdash; block payment</button></div>'
- +'<div class="note">The agent cannot dispose of this alert. It has stopped and is waiting.<br>'
- +'Check reference <code>'+cur.record.reference+'</code> \u2014 recorded, open.</div></div>';
+function decisionCard(r){
+ return '<div class="card"><div class="lbl">Their disposition</div>'
+ +'<div class="row"><button class="clear" id="d-clear">Clear the alert</button>'
+ +'<button class="esc" id="d-esc">Escalate</button></div>'
+ +'<div class="note">Their reviewer decides. We record the disposition against check '
+ +'<code>'+r.reference+'</code> so it appears in their audit trail.</div></div>';
 }
 
 async function run(id){
- $("stage").innerHTML='<div class="card">Screening\u2026 paying as it goes.</div>';
+ $("stage").innerHTML='<div class="card">Screening\u2026</div>';
  const r=await post("/api/run",{id});
  if(!r.ok){$("stage").innerHTML='<div class="card">'+r.error+'</div>';return;}
  cur=r; ledger(r.ledger);
 
  if(r.outcome==="clear"){
-  $("stage").innerHTML='<div class="banner ok">No matches. Payment released automatically.</div>'
-   +paymentCard(r.payment)+screenCard(r.screen)
-   +'<div class="card"><div class="lbl">Outcome</div><div class="big">'+r.payment.amount
-   +' released</div><div class="note">Total compliance cost: 2\u00A2. No human touched this.<br>'
-   +'Recorded as <code>'+r.record.reference+'</code>.</div></div>';
+  $("stage").innerHTML=ours('<div class="banner ok">No match returned.</div>'
+    +checkCard(r.record,r.screen)+resultCard(r.screen))
+   +theirs(paymentCard(r.payment));
   return;
  }
 
- $("stage").innerHTML='<div class="banner warn">Possible match. Agent halted and bought context.</div>'
-  +paymentCard(r.payment)+screenCard(r.screen)+contextCard(r.context)+decisionCard();
+ $("stage").innerHTML=ours('<div class="banner warn">Possible match returned \u2014 1 record.</div>'
+   +checkCard(r.record,r.screen)+resultCard(r.screen)+comparisonCard(r.context))
+  +theirs(paymentCard(r.payment)+reviewCard(r.context)+decisionCard(r.record));
  $("d-clear").onclick=()=>decide(true);
  $("d-esc").onclick=()=>decide(false);
 }
 
 async function decide(cleared){
- const p=cur.payment;
- const d=await post("/api/dispose",{reference:cur.record.reference,
+ const p=cur.payment, rec=cur.record;
+ const d=await post("/api/dispose",{reference:rec.reference,
                     disposition:cleared?"cleared":"escalated"});
- $("stage").innerHTML=(cleared
-  ?'<div class="banner ok">Cleared by reviewer. Payment released.</div>'
-  :'<div class="banner stop">Escalated. Payment blocked \u2014 not settled.</div>')
-  +paymentCard(p)+contextCard(cur.context)
-  +'<div class="card"><div class="lbl">Outcome</div><div class="big">'
-  +(cleared?p.amount+' released':p.amount+' held')+'</div>'
-  +'<div class="note">Decision by human reviewer, recorded against '+p.ref
-  +' as check <code>'+cur.record.reference+'</code> at '
-  +(d.record?new Date(d.record.disposed_at).toLocaleTimeString():'now')
-  +'. Compliance cost 7\u00A2 \u2014 the agent assembled the file, the reviewer judged it.</div>'
-  +'<div class="row" style="margin-top:12px"><a href="/audit"><button class="g">'
-  +'View audit trail &rarr;</button></a></div></div>';
+ $("stage").innerHTML=ours('<div class="banner ok">Check complete. Disposition recorded.</div>'
+   +checkCard(rec,cur.screen)+resultCard(cur.screen)+comparisonCard(cur.context)
+   +'<div class="card"><div class="lbl">Disposition recorded</div>'
+   +'<div class="kv"><span>Check</span><b><code>'+rec.reference+'</code></b></div>'
+   +'<div class="kv"><span>Outcome</span><b>'+(cleared?'cleared':'escalated')+'</b></div>'
+   +'<div class="kv"><span>Recorded at</span><b>'
+     +(d.record?new Date(d.record.disposed_at).toISOString():'now')+'</b></div>'
+   +'<div class="note">Their decision, stored against our check reference. '
+   +'The record hash covers the check facts only \u2014 not the disposition.</div></div>')
+  +theirs(paymentCard(p));
 }
 
 $("b-clean").onclick=()=>run("clean");
 $("b-hit").onclick=()=>run("hit");
-$("b-reset").onclick=async()=>{ledger(await post("/api/reset"));$("stage").innerHTML="";};
+$("b-reset").onclick=async()=>{ledger(await post("/api/reset"));$("stage").innerHTML="";cur=null;};
 fetch("/api/ledger").then(r=>r.json()).then(ledger);
 </script></body></html>

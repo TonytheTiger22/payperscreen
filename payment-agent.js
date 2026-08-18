@@ -24,9 +24,10 @@ const PAYMENTS = {
 const ledger = { spent: 0, lines: [] };
 const txOf = (h) => (JSON.stringify(h ?? {}).match(/0x[0-9a-fA-F]{64}/) || [])[0] || null;
 
-async function buy(path, id, label, price) {
+async function buyQuery(path, params, label, price) {
   const t0 = Date.now();
-  const r = await fetchWithPayment(`${API}${path}?id=${id}`, { method: "GET" });
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetchWithPayment(`${API}${path}?${qs}`, { method: "GET" });
   const out = await httpClient.processResponse(r);
   if (out.paymentStatus !== "settled") throw new Error("Payment " + out.paymentStatus);
   ledger.spent = +(ledger.spent + price).toFixed(4);
@@ -36,11 +37,14 @@ async function buy(path, id, label, price) {
   return { body: out.body, line };
 }
 
+const buy = (path, id, label, price) => buyQuery(path, { id }, label, price);
+
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 app.get("/", (_, res) => res.sendFile(process.cwd() + "/public/compliance.html"));
 app.get("/audit", (_, res) => res.sendFile(process.cwd() + "/public/audit.html"));
+app.get("/landing", (_, res) => res.sendFile(process.cwd() + "/public/landing.html"));
 app.get("/api/ledger", (_, res) => res.json(ledger));
 app.get("/api/audit", (_, res) => res.json(audit.list(200)));
 app.get("/api/verify/:ref", (req, res) => res.json(audit.verify(req.params.ref)));
@@ -86,6 +90,46 @@ app.post("/api/run", async (req, res) => {
     const context = await buy("/context", id, "Alert context pack", 0.05);
     res.json({ ok: true, id, payment: PAYMENTS[id], outcome: "review",
                screen: b, context: context.body, record: rec, ledger });
+
+  } catch (err) {
+    res.json({ ok: false, error: String(err), ledger });
+  }
+});
+
+app.post("/api/screen-free", async (req, res) => {
+  const name = (req.body.name || "").trim();
+  const dob = req.body.dob || "";
+  const country = req.body.country || "";
+  const type = req.body.type || "Individual";
+  if (!name) return res.json({ ok: false, error: "Name is required" });
+
+  try {
+    const screen = await buyQuery("/screen", { name, dob, country, type },
+                                  "Sanctions screening", 0.02);
+    const b = screen.body;
+
+    const rec = audit.record({
+      subject: b.subject,
+      listsChecked: b.listsChecked,
+      listVersion: LIST_VERSION,
+      hitCount: b.hitCount,
+      topScore: b.hitCount ? b.hits[0].score : null,
+      topMatch: b.hitCount ? b.hits[0].name : null,
+      clientRef: "LANDING",
+      pricePaid: 0.02,
+      paymentTx: screen.line.tx,
+    });
+
+    if (b.hitCount === 0) {
+      audit.dispose(rec.reference, "no_match_auto", "system");
+      return res.json({ ok: true, outcome: "clear", screen: b,
+                        record: audit.get(rec.reference), ledger });
+    }
+
+    const context = await buyQuery("/context", { name, dob, country, type },
+                                    "Field comparison", 0.05);
+    res.json({ ok: true, outcome: "hit", screen: b, context: context.body,
+               record: rec, ledger });
 
   } catch (err) {
     res.json({ ok: false, error: String(err), ledger });
