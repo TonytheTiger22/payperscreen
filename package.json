@@ -2,8 +2,9 @@
   "name": "x402",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "payment-agent.js",
   "scripts": {
+    "start": "node payment-agent.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
