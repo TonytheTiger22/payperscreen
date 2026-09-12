@@ -1,4 +1,5 @@
 import express from "express";
+import pg from "pg";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -6,6 +7,11 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 const SELLER = process.env.SELLER_ADDRESS;
 const app = express();
 const facilitator = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
+
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 const priced = (price, description) => ({
   accepts: [{ scheme: "exact", price, network: "eip155:84532", payTo: SELLER }],
@@ -36,60 +42,62 @@ const SUBJECTS = {
   },
 };
 
-const WATCHLIST = [
-  { name: "Viktor Petrov", dob: "1965-01-22", country: "Russian Federation",
-    type: "Individual", list: "OFAC SDN", listVersion: "2026-08-17",
-    program: "UKRAINE-EO14024", uid: "SDN-41287" },
-  { name: "Elena Volkova", dob: "1972-11-03", country: "Belarus",
-    type: "Individual", list: "EU Consolidated", listVersion: "2026-07-30",
-    program: "BY-SANCTIONS", uid: "EU-88213" },
-  { name: "Grand Horizon Trading LLC", dob: null, country: "Iran",
-    type: "Entity", list: "OFAC SDN", listVersion: "2026-08-17",
-    program: "IRAN-EO13902", uid: "SDN-55012" },
-  { name: "Dmitri Sokolov", dob: "1980-05-14", country: "Russian Federation",
-    type: "Individual", list: "UK OFSI", listVersion: "2026-08-01",
-    program: "RUSSIA", uid: "OFSI-2201" },
-  { name: "Wei Chen", dob: "1975-09-09", country: "North Korea",
-    type: "Individual", list: "UN 1267", listVersion: "2026-06-15",
-    program: "DPRK", uid: "UN-3391" },
-];
-const LISTS_CHECKED = ["OFAC SDN", "EU Consolidated", "UN 1267", "UK OFSI"];
-const HIT_THRESHOLD = 0.55;
+const LISTS_CHECKED = ["OFAC SDN"];
+const HIT_THRESHOLD = 0.4;
 
-function normalize(s) {
-  return (s || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+function compareDob(subjectDob, listedDob) {
+  if (!subjectDob || !listedDob)
+    return { status: "unknown", note: "insufficient data to compare" };
+
+  if (/^\d{4}$/.test(listedDob)) {
+    const subjectYear = String(subjectDob).slice(0, 4);
+    return subjectYear === listedDob
+      ? { status: "partial", note: "year matches — OFAC record has year only" }
+      : { status: "differs", note: "year differs — OFAC record has year only" };
+  }
+
+  const listedParsed = new Date(listedDob);
+  const subjectParsed = new Date(subjectDob);
+  if (isNaN(listedParsed) || isNaN(subjectParsed))
+    return { status: "unknown", note: "unparseable date format" };
+
+  const same = listedParsed.toISOString().slice(0, 10) === subjectParsed.toISOString().slice(0, 10);
+  return same
+    ? { status: "match", note: "exact match" }
+    : { status: "differs", note: "differs" };
 }
 
-function levenshtein(a, b) {
-  const m = a.length, n = b.length;
-  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-  return dp[m][n];
+function compareField(subjectVal, listedVal) {
+  if (!subjectVal || !listedVal)
+    return { status: "unknown", note: "insufficient data to compare" };
+  const same = String(subjectVal).trim().toLowerCase() === String(listedVal).trim().toLowerCase();
+  return same
+    ? { status: "match", note: "exact match" }
+    : { status: "differs", note: "differs" };
 }
 
-function nameScore(input, candidate) {
-  const a = normalize(input), b = normalize(candidate);
-  if (!a || !b) return 0;
-  const dist = levenshtein(a, b);
-  const charSim = 1 - dist / Math.max(a.length, b.length);
-  const ta = new Set(a.split(" ")), tb = new Set(b.split(" "));
-  const overlap = [...ta].filter((t) => tb.has(t)).length;
-  const tokenSim = overlap / Math.max(ta.size, tb.size, 1);
-  return Math.round(Math.max(charSim, tokenSim) * 100) / 100;
+async function bestMatch(name) {
+  const { rows } = await pool.query(
+    `WITH candidates AS (
+       SELECT e.id, e.canonical_name AS name, e.entity_type, e.dob, e.nationality,
+              e.program, e.uid, similarity(e.canonical_name, $1) AS score, 'primary name' AS basis
+       FROM entities e
+       WHERE e.source = 'OFAC' AND e.canonical_name % $1
+       UNION ALL
+       SELECT e.id, e.canonical_name AS name, e.entity_type, e.dob, e.nationality,
+              e.program, e.uid, similarity(a.alias_name, $1) AS score, 'alias match' AS basis
+       FROM entity_aliases a JOIN entities e ON e.id = a.entity_id
+       WHERE e.source = 'OFAC' AND a.alias_name % $1
+     )
+     SELECT * FROM candidates ORDER BY score DESC LIMIT 1`,
+    [name]
+  );
+  return rows[0] || null;
 }
 
-function bestMatch(name) {
-  return WATCHLIST
-    .map((w) => ({ ...w, score: nameScore(name, w.name) }))
-    .sort((a, b) => b.score - a.score)[0];
-}
-
-app.get("/screen", (req, res) => {
+app.get("/screen", async (req, res) => {
   if (req.query.id) {
     const s = SUBJECTS[req.query.id] || SUBJECTS.clean;
     return res.json({
@@ -107,28 +115,35 @@ app.get("/screen", (req, res) => {
     country: req.query.country || null,
     type: req.query.type || "Individual",
   };
-  const top = subject.name ? bestMatch(subject.name) : null;
-  const hitCount = top && top.score >= HIT_THRESHOLD ? 1 : 0;
+
+  const top = subject.name ? await bestMatch(subject.name) : null;
+  const score = top ? Math.round(top.score * 100) / 100 : 0;
+  const hitCount = top && score >= HIT_THRESHOLD ? 1 : 0;
+
   res.json({
     subject,
     listsChecked: LISTS_CHECKED,
     screenedAt: new Date().toISOString(),
     hitCount,
-    hits: hitCount ? [{ list: top.list, score: top.score, name: top.name }] : [],
+    hits: hitCount ? [{ list: "OFAC SDN", score, name: top.name }] : [],
   });
 });
 
-app.get("/context", (req, res) => {
+app.get("/context", async (req, res) => {
   if (req.query.id) {
     const s = SUBJECTS[req.query.id];
     if (!s || !s.hits.length) return res.json({ error: "No alert to contextualise" });
     const h = s.hits[0];
     return res.json({
       fields: [
-        { field: "Name",          subject: s.name,    listed: h.listed.name,    agree: true  },
-        { field: "Date of birth", subject: s.dob,      listed: h.listed.dob,     agree: false },
-        { field: "Nationality",   subject: s.country,  listed: h.listed.country, agree: false },
-        { field: "Entity type",   subject: s.type,     listed: h.listed.type,    agree: true  },
+        { field: "Name",          subject: s.name,   listed: h.listed.name,
+          status: "match",  note: "exact match" },
+        { field: "Date of birth", subject: s.dob,     listed: h.listed.dob,
+          status: "differs", note: "differs" },
+        { field: "Nationality",   subject: s.country, listed: h.listed.country,
+          status: "differs", note: "differs" },
+        { field: "Entity type",   subject: s.type,    listed: h.listed.type,
+          status: "match",  note: "exact match" },
       ],
       meta: { list: h.list, listVersion: h.listVersion, program: h.listed.program,
               uid: h.listed.uid, score: h.score, matchedOn: h.matchedOn },
@@ -141,25 +156,37 @@ app.get("/context", (req, res) => {
     country: req.query.country || null,
     type: req.query.type || "Individual",
   };
-  const top = subject.name ? bestMatch(subject.name) : null;
-  if (!top || top.score < HIT_THRESHOLD) return res.json({ error: "No alert to contextualise" });
+
+  const top = subject.name ? await bestMatch(subject.name) : null;
+  const score = top ? Math.round(top.score * 100) / 100 : 0;
+  if (!top || score < HIT_THRESHOLD) return res.json({ error: "No alert to contextualise" });
+
+  const listedType = titleCase(top.entity_type);
+  const dobCmp = compareDob(subject.dob, top.dob);
+  const natCmp = compareField(subject.country, top.nationality);
+  const typeCmp = compareField(subject.type, listedType);
 
   res.json({
     fields: [
-      { field: "Name", subject: subject.name, listed: top.name, agree: true },
+      { field: "Name", subject: subject.name, listed: top.name,
+        status: "match", note: "matched on " + top.basis },
       { field: "Date of birth",
-        subject: subject.dob || "not provided", listed: top.dob || "not listed",
-        agree: !!subject.dob && subject.dob === top.dob },
+        subject: subject.dob || "not provided",
+        listed: top.dob || "not in source data",
+        status: dobCmp.status, note: dobCmp.note },
       { field: "Nationality",
-        subject: subject.country || "not provided", listed: top.country,
-        agree: !!subject.country && subject.country.toLowerCase() === top.country.toLowerCase() },
+        subject: subject.country || "not provided",
+        listed: top.nationality || "not in source data",
+        status: natCmp.status, note: natCmp.note },
       { field: "Entity type",
-        subject: subject.type, listed: top.type,
-        agree: subject.type === top.type },
+        subject: subject.type, listed: listedType || "unknown",
+        status: typeCmp.status, note: typeCmp.note },
     ],
-    meta: { list: top.list, listVersion: top.listVersion, program: top.program,
-            uid: top.uid, score: top.score, matchedOn: "Fuzzy name match" },
+    meta: {
+      list: "OFAC SDN", listVersion: "live", program: top.program,
+      uid: top.uid, score, matchedOn: top.basis,
+    },
   });
 });
 
-app.listen(4025, () => console.log("Compliance API on 4025"));
+app.listen(4025, () => console.log("Compliance API on 4025 (live OFAC data, staged comparison)"));

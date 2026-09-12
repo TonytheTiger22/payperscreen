@@ -34,10 +34,12 @@
  table{width:100%;border-collapse:collapse;font-size:15px;margin-top:4px}
  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
     color:var(--dim);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--line)}
- td{padding:9px 8px;border-bottom:1px solid #eef1f4}
+ td{padding:9px 8px;border-bottom:1px solid #eef1f4;vertical-align:top}
  tr.no td{background:#fff6f5}
- .tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px}
+ .tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
  .tag.y{background:#e6f4ec;color:var(--go)}.tag.n{background:#fdeceb;color:var(--stop)}
+ .tag.p{background:#fdf3e3;color:#a4600a}.tag.u{background:#eef1f4;color:var(--dim)}
+ .fnote{display:block;font-size:11px;color:var(--dim);margin-top:2px;font-weight:400}
  .banner{border-radius:10px;padding:13px 15px;font-size:15.5px;font-weight:600;margin-bottom:11px}
  .banner.ok{background:#e6f4ec;color:#12603a}
  .banner.warn{background:#fdf3e3;color:var(--amber)}
@@ -118,10 +120,15 @@ function resultCard(s){
  +'We do not assess, recommend, or decide.</div></div>';
 }
 
+const STATUS_TAG={match:['y','agrees'],partial:['p','partial'],differs:['n','differs'],unknown:['u','no data']};
 function comparisonCard(x){
- const rows=x.fields.map(f=>'<tr class="'+(f.agree?'':'no')+'"><td>'+f.field+'</td><td>'
-   +f.subject+'</td><td>'+f.listed+'</td><td><span class="tag '+(f.agree?'y':'n')+'">'
-   +(f.agree?'agrees':'differs')+'</span></td></tr>').join('');
+ const rows=x.fields.map(f=>{
+   const st=f.status||(f.agree?'match':'differs');
+   const [cls,label]=STATUS_TAG[st]||STATUS_TAG.unknown;
+   return '<tr class="'+(st==='differs'?'no':'')+'"><td>'+f.field+'</td><td>'
+    +f.subject+'</td><td>'+f.listed+'</td><td><span class="tag '+cls+'">'+label+'</span>'
+    +(f.note?'<span class="fnote">'+f.note+'</span>':'')+'</td></tr>';
+ }).join('');
  return '<div class="card"><div class="lbl">Field comparison</div>'
  +'<table><tr><th>Field</th><th>Subject supplied</th><th>Listed party</th><th></th></tr>'+rows+'</table>'
  +'<div class="note">'+x.meta.list+' '+x.meta.listVersion+' \u00B7 '+x.meta.program
@@ -135,12 +142,6 @@ function paymentCard(p){
  +'<div class="kv"><span>Counterparty</span><b>'+p.vendor+'</b></div>'
  +'<div class="kv"><span>Amount</span><b>'+p.amount+'</b></div>'
  +'<div class="kv"><span>Purpose</span><b>'+p.purpose+'</b></div></div>';
-}
-
-function reviewCard(x){
- return '<div class="card"><div class="lbl">Their review layer</div>'
- +'<p style="margin:0;font-size:15px;line-height:1.6">'+x.narrative+'</p>'
- +'<div class="note">Built by the customer on top of our comparison. Not supplied by us.</div></div>';
 }
 
 function decisionCard(r){
@@ -166,7 +167,7 @@ async function run(id){
 
  $("stage").innerHTML=ours('<div class="banner warn">Possible match returned \u2014 1 record.</div>'
    +checkCard(r.record,r.screen)+resultCard(r.screen)+comparisonCard(r.context))
-  +theirs(paymentCard(r.payment)+reviewCard(r.context)+decisionCard(r.record));
+  +theirs(paymentCard(r.payment)+decisionCard(r.record));
  $("d-clear").onclick=()=>decide(true);
  $("d-esc").onclick=()=>decide(false);
 }
