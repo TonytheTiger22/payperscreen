@@ -11,7 +11,7 @@ client.register("eip155:*", new ExactEvmScheme(signer));
 const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 const httpClient = new x402HTTPClient(client);
 
-const API = "http://localhost:4025";
+const API = process.env.COMPLIANCE_API_URL || "http://localhost:4025";
 const LIST_VERSION = "OFAC-2026-08-17";
 
 const PAYMENTS = {
