@@ -229,7 +229,9 @@ supported yet. VPN/hosting classification and community abuse reports
   addresses only, sourced via a third-party extraction tool (see
   `ingest-crypto-addresses.mjs` in this repo for provenance). No linked
   identity data — a hit tells you the address is listed, not whose it is.
-- All are snapshots. OFAC and crypto addresses are refreshed manually; UN/EU/UK can refresh daily. If
+- All are snapshots, re-downloaded automatically once a day (a failed
+  download keeps the previous copy; `/lists` shows each list's real
+  last-refreshed date). If
   you need a guarantee of same-day freshness, verify against OFAC's own
   published list directly for anything high-stakes.
 

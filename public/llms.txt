@@ -41,8 +41,8 @@ No API key, no signup. A request with no payment gets back `402 Payment
 Required` naming the exact price, network (`eip155:8453`, Base mainnet),
 and asset (USDC). The caller signs a gasless EIP-3009
 `transferWithAuthorization` and retries with it attached; x402-aware HTTP
-clients (e.g. `@x402/fetch`) do this automatically. No ETH is needed to
-call the API — only to send a query, not to pay for gas.
+clients (e.g. `@x402/fetch`) do this automatically. You only need USDC on
+Base: no ETH for gas, since the facilitator submits the transaction.
 
 ## Endpoints (see /docs for full detail)
 

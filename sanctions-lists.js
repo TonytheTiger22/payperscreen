@@ -1,4 +1,4 @@
-// UN, EU and UK sanctions lists -> the shared `entities` / `entity_aliases`
+// OFAC SDN, UN, EU and UK sanctions lists -> the shared `entities` / `entity_aliases`
 // tables (the same ones OFAC lives in; see ingest-ofac-full.mjs).
 //
 // Each parser is a pure function: XML string in, array of normalised records
@@ -100,7 +100,32 @@ export function parseUK(xml) {
   return out;
 }
 
+// ---- OFAC SDN (US Treasury) -----------------------------------------------
+// Same field mapping as the original one-off ingest-ofac-full.mjs.
+export function parseOFAC(xml) {
+  const doc = new XMLParser({ ignoreAttributes: true, parseTagValue: false }).parse(xml);
+  const fullName = (e) => join(e?.firstName, e?.lastName);
+  const out = [];
+  for (const e of findAll(doc, "sdnEntry")) {
+    const name = fullName(e) || txt(e.lastName);
+    const uid = txt(e.uid);
+    if (!name || !uid) continue;
+    const dob = txt(arr(e.dateOfBirthList?.dateOfBirthItem)[0]?.dateOfBirth) || null;
+    const nationality = txt(arr(e.nationalityList?.nationality)[0]?.country)
+                     || txt(arr(e.citizenshipList?.citizenship)[0]?.country) || null;
+    out.push({ uid, name, type: txt(e.sdnType) || "Individual", dob, nationality,
+               program: uniq(arr(e.programList?.program).map(txt)).join(",") || null,
+               aliases: uniq(arr(e.akaList?.aka).map((a) => fullName(a) || txt(a.lastName))) });
+  }
+  return out;
+}
+
 export const SOURCES = {
+  OFAC: {
+    label: "OFAC Specially Designated Nationals (SDN) list",
+    url: "https://sanctionslistservice.ofac.treas.gov/api/download/sdn.xml",
+    parse: parseOFAC, minRecords: 5000,
+  },
   UN: {
     label: "UN Security Council Consolidated List",
     url: "https://scsanctions.un.org/resources/xml/en/consolidated.xml",
@@ -163,4 +188,43 @@ export async function refreshSource(client, source, log = console.log) {
   const n = await storeRecords(client, source, records);
   log(`[${source}] loaded ${n} records`);
   return n;
+}
+
+// ---- OFAC sanctioned crypto addresses --------------------------------------
+// Re-pulls the per-asset files that ingest-crypto-addresses.mjs loads (see
+// that file for provenance), atomically, with a sanity floor.
+const CRYPTO_RAW = "https://raw.githubusercontent.com/0xB10C/ofac-sanctioned-digital-currency-addresses/lists";
+const CRYPTO_EVM = new Set(["ETH", "USDT", "USDC", "ARB", "BSC", "ETC"]);
+const CRYPTO_ASSETS = ["XBT", "ETH", "USDT", "USDC", "TRX", "SOL", "LTC", "BCH",
+  "ARB", "BSC", "ETC", "DASH", "XMR", "ZEC", "XVG", "BTG", "BSV", "XRP"];
+
+export async function refreshCryptoAddresses(client, log = console.log) {
+  const SOURCE = "OFAC-SDN-CRYPTO";
+  const rows = [];
+  for (const asset of CRYPTO_ASSETS) {
+    const res = await fetch(`${CRYPTO_RAW}/sanctioned_addresses_${asset}.txt`, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) throw new Error(`${SOURCE}: ${asset} download failed, HTTP ${res.status}; previous data left untouched`);
+    for (const line of (await res.text()).split("\n")) {
+      const address = line.trim();
+      if (address) rows.push([asset, address, CRYPTO_EVM.has(asset) ? address.toLowerCase() : address]);
+    }
+  }
+  if (rows.length < 500)
+    throw new Error(`${SOURCE}: only ${rows.length} addresses downloaded; previous data left untouched`);
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM sanctioned_addresses WHERE source = $1", [SOURCE]);
+    await client.query(
+      `INSERT INTO sanctioned_addresses (source, asset, address, address_normalized)
+       SELECT $1, a, b, c FROM unnest($2::text[], $3::text[], $4::text[]) AS t(a, b, c)
+       ON CONFLICT (source, asset, address_normalized) DO NOTHING`,
+      [SOURCE, rows.map((r) => r[0]), rows.map((r) => r[1]), rows.map((r) => r[2])]);
+    await client.query(
+      `INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
+       ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
+      [SOURCE, new Date().toISOString().slice(0, 10)]);
+    await client.query("COMMIT");
+  } catch (err) { await client.query("ROLLBACK"); throw err; }
+  log(`[${SOURCE}] loaded ${rows.length} addresses`);
+  return rows.length;
 }

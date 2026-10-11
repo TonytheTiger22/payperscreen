@@ -1,6 +1,6 @@
 // Parser smoke test on tiny hand-written fixtures (no network, no DB).
 import assert from "node:assert/strict";
-import { parseUN, parseEU, parseUK } from "./sanctions-lists.js";
+import { parseUN, parseEU, parseUK, parseOFAC } from "./sanctions-lists.js";
 
 const un = parseUN(`<CONSOLIDATED_LIST><INDIVIDUALS>
  <INDIVIDUAL><DATAID>1</DATAID><FIRST_NAME>Ali</FIRST_NAME><SECOND_NAME>Hassan</SECOND_NAME><THIRD_NAME>Khan</THIRD_NAME>
@@ -36,4 +36,17 @@ const uk = parseUK(`<Designations><Designation><UniqueID>RUS0001</UniqueID><Regi
 assert.equal(uk.length, 1);
 assert.equal(uk[0].name, "Ivan PETROV"); assert.equal(uk[0].aliases[0], "Vanya Petrov");
 assert.equal(uk[0].dob, "1965-01-22");
+const ofac = parseOFAC(`<sdnList><publshInformation><Publish_Date>10/01/2026</Publish_Date></publshInformation>
+ <sdnEntry><uid>36</uid><lastName>AEROCARIBBEAN AIRLINES</lastName><sdnType>Entity</sdnType>
+  <programList><program>CUBA</program></programList>
+  <akaList><aka><uid>12</uid><type>a.k.a.</type><lastName>AERO-CARIBBEAN</lastName></aka></akaList></sdnEntry>
+ <sdnEntry><uid>2674</uid><firstName>Viktor</firstName><lastName>PETROV</lastName><sdnType>Individual</sdnType>
+  <programList><program>RUSSIA-EO14024</program><program>UKRAINE-EO13662</program></programList>
+  <dateOfBirthList><dateOfBirthItem><uid>1</uid><dateOfBirth>22 Jan 1965</dateOfBirth></dateOfBirthItem></dateOfBirthList>
+  <nationalityList><nationality><uid>2</uid><country>Russia</country></nationality></nationalityList></sdnEntry></sdnList>`);
+assert.equal(ofac.length, 2);
+assert.deepEqual(ofac[0], { uid: "36", name: "AEROCARIBBEAN AIRLINES", type: "Entity", dob: null,
+  nationality: null, program: "CUBA", aliases: ["AERO-CARIBBEAN"] });
+assert.deepEqual(ofac[1], { uid: "2674", name: "Viktor PETROV", type: "Individual", dob: "22 Jan 1965",
+  nationality: "Russia", program: "RUSSIA-EO14024,UKRAINE-EO13662", aliases: [] });
 console.log("parsers OK");
