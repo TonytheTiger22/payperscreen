@@ -13,6 +13,11 @@ const NETWORK = "eip155:8453";
 
 const SELLER = process.env.SELLER_ADDRESS;
 const app = express();
+// Railway terminates TLS at its proxy. Without this, req.protocol is "http"
+// and the x402 middleware advertises http:// resource URLs, which the CDP
+// Bazaar won't index.
+app.set("trust proxy", true);
+const PUBLIC_API = process.env.PUBLIC_API_URL || "https://api.payperscreen.com";
 
 // Real CDP facilitator — reads CDP_API_KEY_ID / CDP_API_KEY_SECRET from env.
 // Was the free testnet facilitator at https://x402.org/facilitator.
@@ -148,11 +153,59 @@ app.get("/", (_, res) => res.json({
   llms: "https://payperscreen.com/llms.txt",
   agentCard: "https://payperscreen.com/.well-known/agent-card.json",
   lists: "https://payperscreen.com/lists",
+  openapi: PUBLIC_API + "/openapi.json",
+  x402Discovery: PUBLIC_API + "/.well-known/x402",
   payment: { protocol: "x402", network: NETWORK, asset: "USDC", payTo: SELLER },
   endpoints: {
     "GET /screen": "$0.02", "GET /context": "$0.05", "GET /screen-address": "$0.02",
     "GET /screen-email": "$0.02", "GET /screen-ip": "$0.01",
   },
+}));
+
+// Discovery documents for x402 indexers (x402scan and others). Free to read.
+const DISCOVERY = [
+  { path: "/screen", price: "0.02", summary: "Sanctions screening (OFAC, UN, EU, UK)",
+    params: [["name", "Full name to screen", true], ["dob", "Date of birth, YYYY-MM-DD", false],
+             ["country", "Nationality", false], ["type", "Individual or Entity", false]] },
+  { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit",
+    params: [["name", "Same query as the prior /screen hit", true]] },
+  { path: "/screen-address", price: "0.02", summary: "Crypto address screening: OFAC sanctions, Tether and Circle freezes, known hack proceeds",
+    params: [["address", "Wallet address on any supported chain", true]] },
+  { path: "/screen-email", price: "0.02", summary: "Email trust check",
+    params: [["email", "Email address to check", true]] },
+  { path: "/screen-ip", price: "0.01", summary: "IP risk check (beta)",
+    params: [["ip", "Public IPv4 address", true]] },
+];
+
+app.get("/.well-known/x402", (_, res) => res.json({
+  version: 1,
+  resources: DISCOVERY.map(d => PUBLIC_API + d.path),
+}));
+
+app.get("/openapi.json", (_, res) => res.json({
+  openapi: "3.1.0",
+  info: {
+    title: "PayPerScreen API", version: "1.0.0",
+    description: "Pay-per-call compliance screening for agents and fintech teams: sanctions names, crypto wallets, emails and IPs. Paid per request in USDC on Base via x402. No account or API key.",
+    contact: { name: "PayPerScreen", url: "https://payperscreen.com", email: process.env.CONTACT_EMAIL || "hello@albatrossletter.com" },
+  },
+  servers: [{ url: PUBLIC_API }],
+  externalDocs: { url: "https://payperscreen.com/docs" },
+  paths: Object.fromEntries(DISCOVERY.map(d => [d.path, { get: {
+    operationId: d.path.slice(1).replace(/-(\w)/g, (_, c) => c.toUpperCase()),
+    summary: d.summary,
+    tags: ["compliance"],
+    parameters: d.params.map(([name, description, required]) =>
+      ({ name, in: "query", required, description, schema: { type: "string" } })),
+    "x-payment-info": {
+      protocols: ["x402"], pricingMode: "fixed", price: d.price, currency: "USD",
+      asset: "USDC", network: NETWORK, payTo: SELLER,
+    },
+    responses: {
+      200: { description: "Screening result", content: { "application/json": { schema: { type: "object" } } } },
+      402: { description: "Payment required (x402)" },
+    },
+  } }])),
 }));
 
 app.get("/topup", (req, res) => {
