@@ -133,6 +133,23 @@ app.use(paymentMiddleware(
     .registerExtension(bazaarResourceServerExtension),
 ));
 
+// Free index for whoever lands on the bare API host (often an agent that
+// found it in our docs): says who runs it and where the docs are, so the
+// host isn't an anonymous endpoint asking to be paid.
+app.get("/", (_, res) => res.json({
+  service: "PayPerScreen API",
+  operator: "https://payperscreen.com",
+  docs: "https://payperscreen.com/docs",
+  llms: "https://payperscreen.com/llms.txt",
+  agentCard: "https://payperscreen.com/.well-known/agent-card.json",
+  lists: "https://payperscreen.com/lists",
+  payment: { protocol: "x402", network: NETWORK, asset: "USDC", payTo: SELLER },
+  endpoints: {
+    "GET /screen": "$0.02", "GET /context": "$0.05", "GET /screen-address": "$0.02",
+    "GET /screen-email": "$0.02", "GET /screen-ip": "$0.01",
+  },
+}));
+
 app.get("/topup", (req, res) => {
   res.json({ ok: true, credited: topupAmount(req.query.amount), currency: "USDC" });
 });
@@ -424,10 +441,10 @@ app.get("/context", async (req, res) => {
   });
 });
 
-// Optional daily refresh of the UN/EU/UK lists, run inside this service (which
+// Optional daily refresh of every list (OFAC SDN, UN, EU, UK, OFAC crypto addresses), run inside this service (which
 // has the network access the ingest needs). Off unless AUTO_REFRESH_LISTS=1.
 if (process.env.AUTO_REFRESH_LISTS === "1") {
-  const { SOURCES, refreshSource } = await import("./sanctions-lists.js");
+  const { SOURCES, refreshSource, refreshCryptoAddresses } = await import("./sanctions-lists.js");
   const refreshAll = async () => {
     const client = await pool.connect();
     try {
@@ -435,6 +452,8 @@ if (process.env.AUTO_REFRESH_LISTS === "1") {
         try { await refreshSource(client, src); loadedCache.at = 0; }
         catch (e) { console.error("List refresh failed:", String(e.message || e)); }
       }
+      try { await refreshCryptoAddresses(client); }
+      catch (e) { console.error("Crypto-address refresh failed:", String(e.message || e)); }
     } finally { client.release(); }
   };
   setTimeout(refreshAll, 60_000);
