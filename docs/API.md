@@ -294,7 +294,7 @@ regulatory responsibility. We don't make a disposition decision for you.
 ## Quickstart
 
 ```bash
-git clone https://github.com/TonytheTiger22/x402
+git clone https://github.com/TonytheTiger22/payperscreen
 cd x402
 npm install
 PRIVATE_KEY=0xYourKey node examples/agent-client.mjs screen "Jane Doe"

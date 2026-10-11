@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TonytheTiger22/x402.git"
+    "url": "git+https://github.com/TonytheTiger22/payperscreen.git"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/TonytheTiger22/x402/issues"
+    "url": "https://github.com/TonytheTiger22/payperscreen/issues"
   },
-  "homepage": "https://github.com/TonytheTiger22/x402#readme",
+  "homepage": "https://github.com/TonytheTiger22/payperscreen#readme",
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.57.1",
     "@x402/core": "^2.28.0",
