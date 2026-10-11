@@ -148,7 +148,7 @@
 
  <table>
   <tr><th>What we check</th><th></th></tr>
-  <tr><td class="sig">List coverage</td><td>OFAC's sanctioned digital-currency address list only. 18 assets: XBT (Bitcoin), ETH, USDT, USDC, TRX, SOL, LTC, BCH, ARB, BSC, ETC, DASH, XMR, ZEC, XVG, BTG, BSV, XRP.</td></tr>
+  <tr><td class="sig">List coverage</td><td>Every digital-currency address on OFAC's SDN list, read daily from OFAC's own advanced XML file. That covers every asset OFAC lists (Bitcoin, Ethereum, USDT, USDC, Tron, Solana, Litecoin, Dogecoin and more), and each hit names the listed party and its SDN number as OFAC records it.</td></tr>
   <tr><td class="sig">Match method</td><td>Exact string match on the address, not fuzzy. EVM-family addresses (0x...) are compared case-insensitively; everything else (Bitcoin, Solana, etc.) is case-sensitive, matching how those address formats actually work.</td></tr>
   <tr><td class="sig">Stablecoin freezes</td><td>A separate list: wallets the issuer has frozen. Tether's USDT blacklist on Tron and Ethereum, and Circle's USDC blacklist on Ethereum, Base, Arbitrum and Optimism. We read it straight from the token contracts' public freeze and unfreeze events and refresh it daily, so an unfrozen wallet drops off. Reported as <code>frozenByIssuer</code>, never as a sanctions hit. A frozen wallet can't move its USDT or USDC, so funds sent there are stuck.</td></tr>
   <tr><td class="sig">Known hack proceeds</td><td>A second, separate list: addresses publicly identified as attacker-controlled or holding stolen funds in major hacks. Sources are law-enforcement notices (the FBI's Bybit notice) and the victims' or security firms' own incident write-ups, each entry linked to where it was published. Reported as <code>hackFunds</code>, never as a sanctions hit. Today it covers Bybit, Kelp DAO, Drift, Truebit, Resolv and Step Finance; <a href="/lists">/lists</a> shows the current count.</td></tr>
@@ -156,10 +156,9 @@
 
  <div class="gap">
   <b>What we do NOT check</b>
-  <p>This source has <b>no linked entity name, date of birth, or sanctions
-     program per address</b>, the upstream data simply doesn't carry that
-     information. A hit tells you the address is listed and which asset;
-     it can't tell you whose address it is or why it's listed. "Not
+  <p>A sanctions hit gives the listed party's name and SDN number, but not
+     their date of birth or sanctions program; look those up on OFAC's site
+     with the SDN number. "Not
      sanctioned" means not on this one list. It is not a guarantee the
      address is otherwise clean, has no transaction history with sanctioned
      parties, or isn't a mixer/exchange hot wallet.</p>

@@ -146,8 +146,8 @@ Exact-match lookup against three lists, each reported separately:
    is **not** a sanctions designation.
 
 This is a **different kind of check** from `/screen`: exact
-string match, not fuzzy, and the underlying source carries no linked
-entity name, DOB, or program per address (see "What we check" below).
+string match, not fuzzy. A sanctions match names the listed party
+(`listedParty`) and its SDN number (`sdnUid`) as OFAC records them.
 
 **Query parameters**
 
@@ -162,9 +162,9 @@ entity name, DOB, or program per address (see "What we check" below).
   "address": "...",
   "screenedAt": "2026-10-03T12:40:00.000Z",
   "sanctioned": true,
-  "matches": [{ "asset": "XBT", "source": "OFAC-SDN-CRYPTO" }],
+  "matches": [{ "asset": "XBT", "source": "OFAC-SDN-CRYPTO", "listedParty": "EXAMPLE LISTED PARTY", "sdnUid": "12345" }],
   "source": "OFAC SDN digital currency addresses",
-  "note": "Exact address match only. This source has no linked entity name, DOB, or program per address. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
+  "note": "Exact address match only. A sanctions match names the listed party (listedParty, sdnUid) as OFAC records it. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
   "frozenByIssuer": {
     "listed": false,
     "matches": [],
@@ -260,10 +260,11 @@ supported yet. VPN/hosting classification and community abuse reports
   counts only once it is loaded: `listsChecked` in every response, and
   [/lists](https://payperscreen.com/lists), tell you exactly what was checked,
   so don't assume broader coverage than they state.
-- **Crypto address screening**: OFAC's sanctioned digital-currency
-  addresses only, sourced via a third-party extraction tool (see
-  `ingest-crypto-addresses.mjs` in this repo for provenance). No linked
-  identity data. A hit tells you the address is listed, not whose it is.
+- **Crypto address screening**: every digital-currency address on OFAC's
+  SDN list, parsed daily from OFAC's own `sdn_advanced.xml` (all asset types
+  OFAC uses). A hit names the listed party and SDN number. If Treasury's
+  download fails, that day's refresh falls back to the 0xB10C extraction of
+  the same file, which has no party names.
 - **Stablecoin freezes** (part of `/screen-address`): the current Tether USDT
   blacklist on Tron and Ethereum and Circle USDC blacklist on Ethereum, Base,
   Arbitrum and Optimism, rebuilt from the contracts' own events (freezes and
