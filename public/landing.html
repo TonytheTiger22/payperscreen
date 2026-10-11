@@ -199,7 +199,7 @@
 
    <button class="go" id="go-address">Screen this address</button>
    <div class="price">Costs 2¢. Exact match against OFAC's sanctioned
-    digital-currency addresses, Tether and Circle freeze lists, and our list of known hack proceeds.</div>
+    digital-currency addresses, Tether's freeze list on Tron, and our list of known hack proceeds.</div>
    <div id="err-address" class="err"></div>
   </div>
 
@@ -589,7 +589,7 @@ $("go-address").onclick=async()=>{
      +esc(fz.map(f=>f.token+' on '+f.chain.charAt(0).toUpperCase()+f.chain.slice(1)).join(", "))+'</div>';
   }
   if(!b.sanctioned && !hk.length && !fz.length){
-   html+='<div class="banner ok">Not sanctioned, not frozen by Tether or Circle, and not on our known-hack list.</div>';
+   html+='<div class="banner ok">Not sanctioned, not on the stablecoin freeze list we check'+(b.frozenByIssuer&&b.frozenByIssuer.coverage?' ('+esc(b.frozenByIssuer.coverage)+')':'')+', and not on our known-hack list.</div>';
   }
   html+='<div class="card">'+base
     +'<div class="meta">'+esc(b.note)+(fz.length?' '+esc(b.frozenByIssuer.note):'')+(hk.length?' '+esc(b.hackFunds.note):'')

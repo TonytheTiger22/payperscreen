@@ -15,7 +15,7 @@ This repo is the whole thing: the paid API, the website, the case queue and the 
 |---|---|---|
 | `GET /screen?name=` | $0.02 | Fuzzy name match against OFAC SDN, UN Consolidated, EU Consolidated and UK Sanctions lists, refreshed daily |
 | `GET /context?name=` | $0.05 | Compares date of birth, nationality and type against the best-matching listed record |
-| `GET /screen-address?address=` | $0.02 | Exact match against OFAC sanctioned addresses (with the listed party), Tether/Circle stablecoin freezes, and known hack proceeds. Each source is reported separately |
+| `GET /screen-address?address=` | $0.02 | Exact match against OFAC sanctioned addresses (with the listed party), Tether USDT freezes on Tron, and known hack proceeds. Each source is reported separately |
 | `GET /screen-email?email=` | $0.02 | Ten deterministic signals: MX, disposable domain, domain age, certificate history, DNSBL, typo-squat, role account, mailbox probe and more |
 | `GET /screen-ip?ip=` | $0.01 | Spamhaus ZEN and Tor exit node check (beta) |
 
@@ -56,6 +56,7 @@ npm start                     # website
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | yes | Coinbase CDP facilitator (settles payments) |
 | `AUTO_REFRESH_LISTS=1` | recommended | Refresh every list daily, starting 60 s after start |
 | `TRONGRID_API_KEY` | optional | Faster USDT-on-Tron freeze sync |
+| `ETH_RPC_URL`, `BASE_RPC_URL`, `ARB_RPC_URL`, `OP_RPC_URL` | optional | Node URLs that serve historical logs (e.g. Infura). Each one set switches on freeze coverage for that chain (USDT and USDC on Ethereum, USDC on Base, Arbitrum, Optimism); unset chains are skipped and not claimed |
 | `PUBLIC_API_URL` | optional | Public URL reported to x402 directories |
 | `TOPUP_MIN_USD` | optional | Minimum prepaid top-up (default 1.25) |
 
@@ -79,7 +80,7 @@ npm start                     # website
 | UN Security Council Consolidated List | Public |
 | EU Consolidated Financial Sanctions List | Public |
 | UK Sanctions List (FCDO) | Open Government Licence |
-| Stablecoin freezes | Read from the Tether and Circle token contracts' public on-chain events |
+| Stablecoin freezes | Read from the Tether USDT contract's public on-chain events on Tron (Ethereum and Circle USDC chains switch on when an RPC is set, see below) |
 | Known hack proceeds (`data/hack-addresses.json`) | Curated here from FBI notices (public domain) and published incident reports; each incident lists its sources |
 | Crypto address fallback | [0xB10C/ofac-sanctioned-digital-currency-addresses](https://github.com/0xB10C/ofac-sanctioned-digital-currency-addresses), MIT |
 
