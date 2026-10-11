@@ -20,7 +20,7 @@
   var css = document.createElement("style");
   css.textContent =
     "#site-nav{font:500 15px/1.2 'Instrument Sans',system-ui,sans-serif;background:rgba(251,248,255,.92);" +
-    "backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:2px solid #2B1A3F;position:sticky;top:0;z-index:1000}" +
+    "backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid #DCD2EA;position:sticky;top:0;z-index:1000}" +
     "#site-nav .in{max-width:1120px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:4px;" +
     "overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
     "#site-nav .in::-webkit-scrollbar{display:none}" +

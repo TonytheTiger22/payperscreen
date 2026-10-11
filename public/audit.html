@@ -2,45 +2,65 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Audit trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
- :root{--ink:#16191d;--dim:#5f6a75;--line:#e0e4e9;--go:#1a7f4b;--stop:#b3261e}
+ :root{--ink:#2B1A3F;--dim:#6B5A80;--line:#DCD2EA;--go:#1C7450;--stop:#B42A4A;--amber:#8F5600}
  *{box-sizing:border-box}
- body{margin:0;background:#f5f7f9;color:var(--ink);
-      font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;
+ body{margin:0;background:var(--milk);color:var(--ink);
+      font:15px/1.5 var(--body);
       display:flex;justify-content:center;padding:32px 18px 90px}
  main{width:100%;max-width:1000px}
  h1{font-size:25px;margin:0 0 4px;letter-spacing:-.02em}
  .sub{color:var(--dim);margin:0 0 22px;font-size:15px}
  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:14px}
- .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin-bottom:10px}
+ .lbl{font-size:14px;font-weight:600;color:var(--dim);margin-bottom:10px}
  button{font:inherit;font-weight:640;border:0;border-radius:9px;padding:11px 18px;cursor:pointer}
- .p{background:#1a2634;color:#fff}
- .g{background:#fff;border:2px solid var(--line);color:var(--dim);padding:9px 15px}
+ .p{background:var(--ink);color:#fff}
+ .g{background:#fff;border:1px solid var(--line);color:var(--dim);padding:9px 15px}
  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
  table{width:100%;border-collapse:collapse;font-size:13.5px}
- th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+ th{text-align:left;font-size:13px;
     color:var(--dim);font-weight:600;padding:8px 7px;border-bottom:1px solid var(--line)}
- td{padding:9px 7px;border-bottom:1px solid #eef1f4;vertical-align:top}
- tr:hover td{background:#fafbfc;cursor:pointer}
+ td{padding:9px 7px;border-bottom:1px solid #F1ECF8;vertical-align:top}
+ tr:hover td{background:#FAF7FE;cursor:pointer}
  code{font:12.5px ui-monospace,Menlo,monospace}
  .pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
- .ok{background:#e6f4ec;color:var(--go)}
- .warn{background:#fdf3e3;color:#a4600a}
- .bad{background:#fdeceb;color:var(--stop)}
- .grey{background:#eef1f4;color:var(--dim)}
+ .ok{background:#DAF2E6;color:var(--go)}
+ .warn{background:#FFF2C7;color:#a4600a}
+ .bad{background:#FFD9E0;color:var(--stop)}
+ .grey{background:#F1ECF8;color:var(--dim)}
  .note{font-size:13px;color:var(--dim);margin-top:10px}
- input{font:inherit;padding:10px 13px;border:2px solid var(--line);border-radius:9px;min-width:290px}
+ input{font:inherit;padding:10px 13px;border:1px solid var(--line);border-radius:9px;min-width:290px}
  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;gap:16px}
  .kv span:first-child{color:var(--dim)}
  .kv b{text-align:right;word-break:break-all}
- a{color:#1858c4}
+ a{color:var(--link)}
+
+ h1{font:600 clamp(28px,4vw,36px)/1.15 var(--display);letter-spacing:-.025em}
+ .card{border-radius:18px}
+ button{font-weight:600}
+ .p{background:var(--ink);border-radius:999px}
+ .p:hover{background:#3D2858}
+ .clear,.esc,.g{border-radius:999px}
+ .g:hover{background:var(--wash)}
+ input,select{background:var(--milk);border-radius:12px}
+ input:focus,select:focus{outline:none;border-color:var(--link);background:#fff}
+ code{background:var(--wash);padding:1px 5px;border-radius:5px}
+ a{color:var(--link)}
+ .note{background:none;padding:0;border-radius:0;margin:10px 0 0;font-size:14px;color:var(--dim)}
+ .note:empty{display:none}
+ td .row{flex-wrap:nowrap}
+ td .row button{padding:7px 14px}
 </style></head><body><main>
 <h1>Audit trail</h1>
 <p class="sub">Every check performed, with the list version and time it ran. Exportable.</p>
 
 <div class="card">
  <div class="row">
-  <a href="/"><button class="g">&larr; Back to site</button></a>
+  <a href="/"><button class="g">Back to site</button></a>
   <button class="p" id="ex">Export CSV</button>
   <button class="g" id="rf">Refresh</button>
  </div>
@@ -83,9 +103,9 @@ function draw(){
  $("tbl").innerHTML='<table><tr><th>Reference</th><th>Performed</th><th>Subject</th>'
  +'<th>Your ref</th><th>List version</th><th>Hits</th><th>Status</th><th>Cost</th></tr>'
  +rows.map((r,i)=>'<tr onclick="show('+i+')"><td><code>'+esc(r.reference)+'</code></td><td>'
-  +when(r.performed_at)+'</td><td>'+esc(r.subject_name)+'</td><td>'+(r.client_ref?esc(r.client_ref):"&mdash;")
+  +when(r.performed_at)+'</td><td>'+esc(r.subject_name)+'</td><td>'+(r.client_ref?esc(r.client_ref):"n/a")
   +'</td><td><code>'+esc(r.list_version)+'</code></td><td>'+r.hit_count+'</td><td>'+pill(r)
-  +'</td><td>'+(r.price_paid?(r.price_paid*100).toFixed(0)+"\u00A2":"&mdash;")+'</td></tr>').join('')
+  +'</td><td>'+(r.price_paid?(r.price_paid*100).toFixed(0)+"\u00A2":"n/a")+'</td></tr>').join('')
  +'</table>';
 }
 
@@ -93,7 +113,7 @@ window.show=(i)=>{
  const r=rows[i];
  $("detail").innerHTML='<div class="card"><div class="lbl">Record '+esc(r.reference)+'</div>'
  +Object.entries(r).map(([k,v])=>'<div class="kv"><span>'+esc(k.replace(/_/g," "))+'</span><b>'
-   +(v===null?"&mdash;":(k==="payment_tx"&&v
+   +(v===null?"n/a":(k==="payment_tx"&&v
      ?'<a target="_blank" href="https://sepolia.basescan.org/tx/'+encodeURIComponent(v)+'">'+esc(v.slice(0,20))+'\u2026</a>'
      :esc(String(v))))+'</b></div>').join('')
  +'<div class="note">The record hash commits to the check facts only \u2014 not to the '

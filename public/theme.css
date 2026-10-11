@@ -5,7 +5,7 @@
 
 :root{
   --milk:#FBF8FF; --ink:#2B1A3F; --dim:#6B5A80; --rule:#E6DDF2; --wash:#F3EEFB;
-  --lilac:#E6DDFF; --peach:#FFE4D2; --mint:#DAF2E6; --butter:#FFF2C7; --sky:#DDEBFF;
+  --line:#DCD2EA; --lilac:#E6DDFF; --peach:#FFE4D2; --mint:#DAF2E6; --butter:#FFF2C7; --sky:#DDEBFF;
   --berry:#B42A4A; --leaf:#1C7450; --amber:#8F5600; --link:#5A3DC8;
   --display:"Instrument Sans",system-ui,sans-serif;
   --body:"Instrument Sans",system-ui,sans-serif;
@@ -50,17 +50,17 @@ pre code{background:none;padding:0;color:inherit;font:inherit}
 
 /* ---------- buttons ---------- */
 .btn{display:inline-flex;align-items:center;gap:8px;font:600 16px var(--body);padding:13px 22px;
-     border-radius:999px;text-decoration:none;border:2px solid var(--ink);cursor:pointer;
+     border-radius:999px;text-decoration:none;border:1px solid var(--line);cursor:pointer;
      transition:transform .12s ease,box-shadow .12s ease}
-.btn-ink{background:var(--ink);color:var(--milk);box-shadow:4px 4px 0 var(--lilac)}
-.btn-ink:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--lilac)}
-.btn-soft{background:var(--butter);color:var(--ink)}
-.btn-soft:hover{background:#FFEEB2}
-.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn-ink{background:var(--ink);color:var(--milk);border-color:var(--ink)}
+.btn-ink:hover{background:#3D2858;border-color:#3D2858}
+.btn-soft{background:#fff;color:var(--ink)}
+.btn-soft:hover{background:var(--wash);border-color:#CFC3E0}
+.btn:active{transform:translateY(1px)}
 
 /* ---------- tables ---------- */
 table{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0 24px}
-th{text-align:left;font:700 14px var(--body);color:var(--dim);padding:10px 10px 10px 0;border-bottom:2px solid var(--ink)}
+th{text-align:left;font:600 14px var(--body);color:var(--dim);padding:10px 10px 10px 0;border-bottom:1px solid #CFC3E0}
 td{padding:12px 10px 12px 0;border-bottom:1px solid var(--rule);vertical-align:top}
 
 /* ---------- notes ---------- */
@@ -72,7 +72,7 @@ td{padding:12px 10px 12px 0;border-bottom:1px solid var(--rule);vertical-align:t
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .1 0 0 0 0 .25 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* ---------- footer ---------- */
-.site-foot{border-top:2px solid var(--ink);margin-top:40px}
+.site-foot{border-top:1px solid var(--line);margin-top:40px}
 .site-foot .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding-top:26px;padding-bottom:40px}
 .site-foot .mark{font:600 20px var(--display);margin-right:auto;display:flex;align-items:center;gap:10px}
 .site-foot a{color:var(--ink);font-size:15px}
