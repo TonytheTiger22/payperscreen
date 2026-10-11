@@ -144,30 +144,40 @@ export const SOURCES = {
 };
 
 // Replace one source's rows with `records`, atomically. `client` is a pg Client.
+// Bulk inserts (a few thousand rows per statement via unnest) instead of one
+// query per row: OFAC alone is ~19k entities plus aliases, and row-by-row it
+// ran long enough to be killed by the next deploy before it could commit.
+const CHUNK = 2000;
 export async function storeRecords(client, source, records) {
+  const seen = new Set();
+  const rows = records.filter((r) => !seen.has(r.uid) && seen.add(r.uid));   // (source, uid) is unique
   try {
     await client.query("BEGIN");
-    await client.query("DELETE FROM entities WHERE source = $1", [source]);
-    const seen = new Set();
-    for (const r of records) {
-      if (seen.has(r.uid)) continue;           // (source, uid) is unique
-      seen.add(r.uid);
-      const { rows } = await client.query(
+    await client.query("DELETE FROM entities WHERE source = $1", [source]);   // aliases cascade
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const part = rows.slice(i, i + CHUNK);
+      const col = (f) => part.map((r) => r[f] ?? null);
+      const { rows: ids } = await client.query(
         `INSERT INTO entities (source, uid, canonical_name, entity_type, dob, nationality, program)
-         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-        [source, r.uid, r.name, r.type, r.dob, r.nationality, r.program]);
-      const aliases = r.aliases.filter((a) => a !== r.name);
-      if (aliases.length)
+         SELECT $1, u, n, t, d, c, p
+         FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[]) AS x(u, n, t, d, c, p)
+         RETURNING id, uid`,
+        [source, col("uid"), col("name"), col("type"), col("dob"), col("nationality"), col("program")]);
+      const idByUid = new Map(ids.map((x) => [x.uid, x.id]));
+      const aliasIds = [], aliasNames = [];
+      for (const r of part)
+        for (const a of r.aliases) if (a && a !== r.name) { aliasIds.push(idByUid.get(r.uid)); aliasNames.push(a); }
+      for (let j = 0; j < aliasIds.length; j += CHUNK * 2)
         await client.query(
-          `INSERT INTO entity_aliases (entity_id, alias_name) SELECT $1, unnest($2::text[])`,
-          [rows[0].id, aliases]);
+          `INSERT INTO entity_aliases (entity_id, alias_name) SELECT * FROM unnest($1::int[], $2::text[])`,
+          [aliasIds.slice(j, j + CHUNK * 2), aliasNames.slice(j, j + CHUNK * 2)]);
     }
     await client.query(
       `INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
        ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
       [source, new Date().toISOString().slice(0, 10)]);
     await client.query("COMMIT");
-    return seen.size;
+    return rows.length;
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
