@@ -52,6 +52,11 @@ If you're using an x402-aware HTTP client (the `@x402/fetch` package used
 in the reference client, or any other x402 client library), steps 2–4
 happen automatically. You just call the URL and the library pays for you.
 
+**You only pay for answers.** Payment settles only when the response is a
+success. Bad input (a missing name, an invalid email or IP address) gets a
+`400`, and a field comparison with nothing to compare gets a `404`; in both
+cases the payment is cancelled and nothing is charged.
+
 **Wallet requirements:** real USDC on Base mainnet. No ETH needed: you
 only sign, you never submit a transaction yourself.
 
@@ -125,8 +130,8 @@ listed party. Only meaningful right after a `/screen` call that returned
 | `partial` | Partial agreement (e.g. year-only DOB matches the year)    |
 | `unknown` | Not enough data on one side to compare, **not** a match or a non-match |
 
-Returns `{ "error": "No alert to contextualise" }` if there's nothing to
-compare (no prior hit for these parameters).
+Returns `404` with `{ "error": "No alert to contextualise" }` if there's
+nothing to compare (no prior hit for these parameters). You aren't charged.
 
 ### `GET /screen-address`: $0.02
 
@@ -248,10 +253,18 @@ legitimate traffic comes from datacenter IPs, so it's not scored.
 **Response** shape matches `/screen-email` (`riskLevel`, `redFlag`,
 `redFlagSignals`, `signals`), with `ip` in place of `email`. Private/
 reserved addresses (RFC 1918, loopback, etc.) and anything that isn't a
-valid IPv4 address return `{ "ok": false, "error": "..." }` instead, because no
+valid IPv4 address return `400` with `{ "ok": false, "error": "..." }` (not
+charged) instead, because no
 reputation exists to check for a non-routable address. IPv6 isn't
 supported yet. VPN/hosting classification and community abuse reports
 (AbuseIPDB) aren't live yet because they need a paid key.
+
+## Free endpoints
+
+- `GET /lists-meta`: every loaded list with its record count, version and
+  last refresh time (powers [/lists](https://payperscreen.com/lists)).
+- `GET /refresh-status`: the last refresh attempt per list, with any error,
+  plus stablecoin freeze counts per chain. If a list looks stale, this says why.
 
 ## What we check (current, honest state)
 

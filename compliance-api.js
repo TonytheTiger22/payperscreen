@@ -7,6 +7,7 @@ import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402/
 import { runEmailChecks } from "./checks/email-trust.js";
 import { runIpChecks } from "./checks/ip-trust.js";
 import { lookupFreezes } from "./stablecoin-freezes.js";
+import { compareDob } from "./dob.js";
 
 // Base mainnet (CAIP-2). Was "eip155:84532" (Base Sepolia testnet).
 const NETWORK = "eip155:8453";
@@ -260,28 +261,6 @@ const HIT_THRESHOLD = 0.4;
 
 const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
-function compareDob(subjectDob, listedDob) {
-  if (!subjectDob || !listedDob)
-    return { status: "unknown", note: "insufficient data to compare" };
-
-  if (/^\d{4}$/.test(listedDob)) {
-    const subjectYear = String(subjectDob).slice(0, 4);
-    return subjectYear === listedDob
-      ? { status: "partial", note: "year matches — listed record has year only" }
-      : { status: "differs", note: "year differs — listed record has year only" };
-  }
-
-  const listedParsed = new Date(listedDob);
-  const subjectParsed = new Date(subjectDob);
-  if (isNaN(listedParsed) || isNaN(subjectParsed))
-    return { status: "unknown", note: "unparseable date format" };
-
-  const same = listedParsed.toISOString().slice(0, 10) === subjectParsed.toISOString().slice(0, 10);
-  return same
-    ? { status: "match", note: "exact match" }
-    : { status: "differs", note: "differs" };
-}
-
 function compareField(subjectVal, listedVal) {
   if (!subjectVal || !listedVal)
     return { status: "unknown", note: "insufficient data to compare" };
@@ -421,7 +400,7 @@ app.get("/lists-meta", async (req, res) => {
 
 app.get("/screen-address", async (req, res) => {
   const address = (req.query.address || "").trim();
-  if (!address) return res.json({ error: "address is required" });
+  if (!address) return res.status(400).json({ error: "address is required" });
 
   const [matches, freezes] = await Promise.all([lookupAddress(address), lookupFreezes(pool, address)]);
   const hacks = lookupHack(address);
@@ -457,10 +436,10 @@ app.get("/screen-address", async (req, res) => {
 
 app.get("/screen-email", async (req, res) => {
   const email = (req.query.email || "").trim();
-  if (!email) return res.json({ error: "email is required" });
+  if (!email) return res.status(400).json({ error: "email is required" });
   try {
     const result = await runEmailChecks(email);
-    res.json(result);
+    res.status(result.ok === false ? 400 : 200).json(result);
   } catch (err) {
     res.status(500).json({ error: "Email check failed", detail: String(err?.message || err) });
   }
@@ -468,10 +447,10 @@ app.get("/screen-email", async (req, res) => {
 
 app.get("/screen-ip", async (req, res) => {
   const ip = (req.query.ip || "").trim();
-  if (!ip) return res.json({ error: "ip is required" });
+  if (!ip) return res.status(400).json({ error: "ip is required" });
   try {
     const result = await runIpChecks(ip);
-    res.json(result);
+    res.status(result.ok === false ? 400 : 200).json(result);
   } catch (err) {
     res.status(500).json({ error: "IP check failed", detail: String(err?.message || err) });
   }
@@ -496,8 +475,9 @@ app.get("/screen", async (req, res) => {
     type: req.query.type || "Individual",
   };
 
+  if (!subject.name) return res.status(400).json({ error: "name is required" });
   const sources = await loadedSources();
-  const hits = (subject.name ? await matchesByList(subject.name, sources) : [])
+  const hits = (await matchesByList(subject.name, sources))
     .map((m) => ({ list: LIST_LABELS[m.source], score: Math.round(m.score * 100) / 100, name: m.name }))
     .filter((h) => h.score >= HIT_THRESHOLD);
 
@@ -513,7 +493,7 @@ app.get("/screen", async (req, res) => {
 app.get("/context", async (req, res) => {
   if (req.query.id) {
     const s = SUBJECTS[req.query.id];
-    if (!s || !s.hits.length) return res.json({ error: "No alert to contextualise" });
+    if (!s || !s.hits.length) return res.status(404).json({ error: "No alert to contextualise" });
     const h = s.hits[0];
     return res.json({
       fields: [
@@ -538,9 +518,11 @@ app.get("/context", async (req, res) => {
     type: req.query.type || "Individual",
   };
 
-  const top = subject.name ? await bestMatch(subject.name, await loadedSources()) : null;
+  if (!subject.name) return res.status(400).json({ error: "name is required" });
+  const top = await bestMatch(subject.name, await loadedSources());
   const score = top ? Math.round(top.score * 100) / 100 : 0;
-  if (!top || score < HIT_THRESHOLD) return res.json({ error: "No alert to contextualise" });
+  // 404, not 200: x402 only settles successful responses, so nobody pays 5¢ for "nothing to compare".
+  if (!top || score < HIT_THRESHOLD) return res.status(404).json({ error: "No alert to contextualise" });
 
   const listedType = titleCase(top.entity_type);
   const dobCmp = compareDob(subject.dob, top.dob);
@@ -570,23 +552,81 @@ app.get("/context", async (req, res) => {
   });
 });
 
-// Optional daily refresh of every list (OFAC SDN, UN, EU, UK, OFAC crypto addresses), run inside this service (which
-// has the network access the ingest needs). Off unless AUTO_REFRESH_LISTS=1.
+// ---- List refresh, with a status record per list --------------------------
+// Every refresh attempt is written to refresh_status (survives deploys), so a
+// stale or failing list shows up on GET /refresh-status and on /admin instead
+// of only in the Railway logs.
+await pool.query(`CREATE TABLE IF NOT EXISTS refresh_status (
+    source TEXT PRIMARY KEY, attempted_at TIMESTAMPTZ NOT NULL, ok BOOLEAN NOT NULL,
+    records INT, error TEXT, detail JSONB)`)
+  .catch((e) => console.error("refresh_status table:", String(e.message || e)));
+
+async function recordStatus(source, ok, { records = null, error = null, detail = null } = {}) {
+  await pool.query(
+    `INSERT INTO refresh_status (source, attempted_at, ok, records, error, detail) VALUES ($1, now(), $2, $3, $4, $5)
+     ON CONFLICT (source) DO UPDATE SET attempted_at=now(), ok=$2, records=$3, error=$4, detail=$5`,
+    [source, ok, records, error, detail == null ? null : JSON.stringify(detail)]
+  ).catch((e) => console.error("recordStatus:", String(e.message || e)));
+}
+
+// Runs one step, keeping its log lines so the status record says what happened.
+async function step(source, fn) {
+  const lines = [];
+  const log = (m) => { console.log(m); lines.push(String(m).slice(0, 300)); };
+  try {
+    const out = await fn(log);
+    const records = typeof out === "number" ? out : null;
+    await recordStatus(source, true, { records, detail: { log: lines.slice(-12), ...(typeof out === "object" && out ? { result: out } : {}) } });
+  } catch (e) {
+    const cause = e?.cause ? ` (${e.cause.code || e.cause.message || e.cause})` : "";
+    const error = (String(e?.message || e) + cause).slice(0, 500);
+    console.error(`[${source}] refresh failed: ${error}`);
+    await recordStatus(source, false, { error, detail: { log: lines.slice(-12) } });
+  }
+}
+
+const run = { running: false, startedAt: null, finishedAt: null };
+
+app.get("/refresh-status", async (_, res) => {
+  const [{ rows }, freezes] = await Promise.all([
+    pool.query("SELECT source, attempted_at, ok, records, error, detail FROM refresh_status ORDER BY source")
+      .catch(() => ({ rows: [] })),
+    pool.query("SELECT token, chain, count(*)::int AS n FROM stablecoin_freezes GROUP BY token, chain ORDER BY token, chain")
+      .then((r) => r.rows).catch(() => []),
+  ]);
+  res.json({
+    autoRefresh: process.env.AUTO_REFRESH_LISTS === "1",
+    run,
+    lists: rows.map((r) => ({ source: r.source, attemptedAt: r.attempted_at, ok: r.ok, records: r.records,
+                              error: r.error, detail: r.detail })),
+    stablecoinFreezesByChain: freezes,
+  });
+});
+
+// Optional daily refresh of every list (OFAC SDN, UN, EU, UK, OFAC crypto
+// addresses, stablecoin freezes), run inside this service (which has the
+// network access the ingest needs). Off unless AUTO_REFRESH_LISTS=1.
 if (process.env.AUTO_REFRESH_LISTS === "1") {
   const { SOURCES, refreshSource, refreshCryptoAddresses } = await import("./sanctions-lists.js");
   const { refreshStablecoinFreezes } = await import("./stablecoin-freezes.js");
   const refreshAll = async () => {
+    if (run.running) { console.log("List refresh already running; skipped"); return; }
+    run.running = true; run.startedAt = new Date().toISOString(); run.finishedAt = null;
     const client = await pool.connect();
     try {
       for (const src of Object.keys(SOURCES)) {
-        try { await refreshSource(client, src); loadedCache.at = 0; }
-        catch (e) { console.error("List refresh failed:", String(e.message || e)); }
+        await step(src, (log) => refreshSource(client, src, log));
+        loadedCache.at = 0;
       }
-      try { await refreshCryptoAddresses(client); }
-      catch (e) { console.error("Crypto-address refresh failed:", String(e.message || e)); }
-      try { await refreshStablecoinFreezes(client); }
-      catch (e) { console.error("Stablecoin freeze refresh failed:", String(e.message || e)); }
-    } finally { client.release(); }
+      await step("OFAC-SDN-CRYPTO", (log) => refreshCryptoAddresses(client, log));
+      await step("STABLECOIN-FREEZE", async (log) => {
+        const results = await refreshStablecoinFreezes(client, { log });
+        const failed = Object.entries(results).filter(([, r]) => r.error);
+        if (failed.length === Object.keys(results).length)
+          throw new Error("every chain failed: " + failed.map(([k, r]) => `${k}: ${r.error}`).join("; "));
+        return results;
+      });
+    } finally { client.release(); run.running = false; run.finishedAt = new Date().toISOString(); }
   };
   setTimeout(refreshAll, 60_000);
   setInterval(refreshAll, 24 * 3600_000);

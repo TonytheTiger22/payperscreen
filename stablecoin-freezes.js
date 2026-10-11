@@ -208,14 +208,18 @@ export async function refreshStablecoinFreezes(db, opts = {}) {
     try {
       results[`${feed.token}/${feed.chain}`] = feed.chain === "tron" ? await syncTron(db, feed, opts) : await syncEvmFeed(db, feed, opts);
     } catch (err) {
-      results[`${feed.token}/${feed.chain}`] = { error: String(err.message || err) };
-      log(`[${SOURCE}] ${feed.token}/${feed.chain} failed: ${String(err.message || err)} (previous data kept)`);
+      const msg = String(err.message || err) + (err.cause ? ` (${err.cause.code || err.cause.message || err.cause})` : "");
+      results[`${feed.token}/${feed.chain}`] = { error: msg };
+      log(`[${SOURCE}] ${feed.token}/${feed.chain} failed: ${msg} (previous data kept)`);
     }
   }
   const { rows: [c] } = await db.query("SELECT count(DISTINCT address_normalized)::int AS n FROM stablecoin_freezes");
-  await db.query(`INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
-                  ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
-    [SOURCE, new Date().toISOString().slice(0, 10)]);
+  // Only stamp "refreshed" if at least one chain actually synced; otherwise
+  // /lists would show a fresh time for data that didn't update.
+  if (Object.values(results).some((r) => !r.error))
+    await db.query(`INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
+                    ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
+      [SOURCE, new Date().toISOString().slice(0, 10)]);
   log(`[${SOURCE}] ${c.n} frozen addresses in total`);
   return results;
 }

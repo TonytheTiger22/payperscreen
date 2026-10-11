@@ -100,6 +100,12 @@ async function siteBuy(path, params, label, price) {
   const t0 = Date.now();
   const qs = new URLSearchParams(params).toString();
   const r = await fetchWithPayment(`${API}${path}?${qs}`, { method: "GET" });
+  // The API answers bad input with a 4xx (which x402 never charges for):
+  // pass its message on instead of a bare "Payment failed".
+  if (r.status >= 400 && r.status !== 402) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.error || `The check failed (HTTP ${r.status}), nothing was charged.`);
+  }
   const out = await httpClient.processResponse(r);
   if (out.paymentStatus !== "settled") throw new Error("Payment " + out.paymentStatus);
   ledger.spent = +(ledger.spent + price).toFixed(4);
@@ -339,6 +345,16 @@ app.get("/api/admin/me", (req, res) => res.json({ ok: true, isAdmin: !!req.isAdm
 app.get("/api/admin/visits", (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
   res.json({ ok: true, ...analytics.summary(Math.min(+req.query.days || 30, 365)) });
+});
+
+// Admin only: the API's per-list refresh status (last attempt, errors, freeze
+// counts per chain), so a stale or failing list is visible on /admin.
+app.get("/api/admin/refresh-status", adminOnly, async (_, res) => {
+  try {
+    const r = await fetch(`${API}/refresh-status`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    res.json({ ok: true, ...(await r.json()) });
+  } catch (e) { res.json({ ok: false, error: "Couldn't reach the API: " + String(e.message || e) }); }
 });
 
 app.get("/api/admin/credits", (req, res) => {
