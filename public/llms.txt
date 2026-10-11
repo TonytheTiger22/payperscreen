@@ -35,6 +35,11 @@ you.
 - [Agent card](https://payperscreen.com/.well-known/agent-card.json):
   machine-readable service descriptor (skills, pricing, payment scheme).
 
+## Base URL
+
+All endpoints below are served from `https://api.payperscreen.com`
+(`GET /` there is free and returns a short index).
+
 ## How payment works
 
 No API key, no signup. A request with no payment gets back `402 Payment

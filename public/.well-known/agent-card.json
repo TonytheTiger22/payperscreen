@@ -5,8 +5,8 @@
   "documentationUrl": "https://payperscreen.com/docs",
   "methodologyUrl": "https://payperscreen.com/methodology",
   "version": "1.0.0",
-  "apiBaseUrl": "https://keen-solace-production-b976.up.railway.app",
-  "apiBaseUrlNote": "Provisional Railway-assigned hostname. All skill paths below are relative to this base, not to payperscreen.com. See documentationUrl for the live source of truth if this changes.",
+  "apiBaseUrl": "https://api.payperscreen.com",
+  "apiBaseUrlNote": "All skill paths below are relative to this base (the API subdomain), not to payperscreen.com itself.",
   "provider": {
     "name": "PayPerScreen",
     "url": "https://payperscreen.com"
