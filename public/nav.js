@@ -19,13 +19,13 @@
 
   var css = document.createElement("style");
   css.textContent =
-    "#site-nav{font:700 15px/1.2 'Atkinson Hyperlegible',system-ui,sans-serif;background:rgba(251,248,255,.92);" +
+    "#site-nav{font:500 15px/1.2 'Instrument Sans',system-ui,sans-serif;background:rgba(251,248,255,.92);" +
     "backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:2px solid #2B1A3F;position:sticky;top:0;z-index:1000}" +
     "#site-nav .in{max-width:1120px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:4px;" +
     "overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
     "#site-nav .in::-webkit-scrollbar{display:none}" +
-    "#site-nav .brand{display:flex;align-items:center;gap:9px;font:800 21px 'Bricolage Grotesque',system-ui,sans-serif;" +
-    "font-variation-settings:'wdth' 80;letter-spacing:-.02em;color:#2B1A3F;text-decoration:none;padding:12px 16px 12px 0;margin-right:auto}" +
+    "#site-nav .brand{display:flex;align-items:center;gap:9px;font:600 20px 'Instrument Sans',system-ui,sans-serif;" +
+    "letter-spacing:-.02em;color:#2B1A3F;text-decoration:none;padding:12px 16px 12px 0;margin-right:auto}" +
     "#site-nav a.l{color:#6B5A80;text-decoration:none;padding:7px 13px;border-radius:999px}" +
     "#site-nav a.l:hover{color:#2B1A3F;background:#F3EEFB}" +
     "#site-nav a.l.on{color:#2B1A3F;background:#CDBBFF}" +

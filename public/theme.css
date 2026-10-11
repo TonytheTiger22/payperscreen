@@ -1,14 +1,14 @@
 /* PayPerScreen shared theme: pastel risograph.
    Milk paper, aubergine ink, five pastel "inks" that overlap with multiply
-   like a riso print. Display: Bricolage Grotesque (condensed, heavy).
-   Body: Atkinson Hyperlegible. Loaded by every public page. */
+   like a riso print. Type: Instrument Sans throughout (semibold headings,
+   tabular figures). Loaded by every public page. */
 
 :root{
   --milk:#FBF8FF; --ink:#2B1A3F; --dim:#6B5A80; --rule:#E6DDF2; --wash:#F3EEFB;
   --lilac:#CDBBFF; --peach:#FFC8A6; --mint:#B5E6CC; --butter:#FFE58F; --sky:#BBD7FF;
   --berry:#B42A4A; --leaf:#1C7450; --amber:#8F5600; --link:#5A3DC8;
-  --display:"Bricolage Grotesque",system-ui,sans-serif;
-  --body:"Atkinson Hyperlegible",system-ui,sans-serif;
+  --display:"Instrument Sans",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 
   /* legacy names still used by page scripts and older markup */
@@ -17,17 +17,17 @@
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--milk);color:var(--ink);font:17px/1.6 var(--body)}
+body{margin:0;background:var(--milk);color:var(--ink);font:17px/1.6 var(--body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 a{color:var(--link);text-underline-offset:3px;text-decoration-thickness:1px}
 a:hover{text-decoration-thickness:2px}
 :focus-visible{outline:3px solid var(--link);outline-offset:2px;border-radius:4px}
 img,svg{max-width:100%}
 
 /* ---------- type ---------- */
-h1,h2,h3{font-family:var(--display);color:var(--ink);font-variation-settings:"wdth" 80;margin:0}
-h1{font-weight:800;font-size:clamp(40px,7vw,76px);line-height:.98;letter-spacing:-.025em}
-h2{font-weight:800;font-size:clamp(30px,4.2vw,44px);line-height:1.04;letter-spacing:-.02em}
-h3{font-weight:700;font-size:21px;line-height:1.2;letter-spacing:-.01em;font-variation-settings:"wdth" 90}
+h1,h2,h3{font-family:var(--display);color:var(--ink);margin:0}
+h1{font-weight:600;font-size:clamp(38px,6vw,64px);line-height:1.06;letter-spacing:-.03em}
+h2{font-weight:600;font-size:clamp(28px,3.8vw,40px);line-height:1.12;letter-spacing:-.025em}
+h3{font-weight:600;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 p{margin:0 0 14px}
 .lead{font-size:20px;line-height:1.55;color:var(--ink);max-width:36em}
 .muted{color:var(--dim)}
@@ -49,7 +49,7 @@ pre code{background:none;padding:0;color:inherit;font:inherit}
 .prose > p:first-of-type{font-size:20px;line-height:1.55;color:var(--dim);margin-bottom:32px}
 
 /* ---------- buttons ---------- */
-.btn{display:inline-flex;align-items:center;gap:8px;font:700 16px var(--body);padding:13px 22px;
+.btn{display:inline-flex;align-items:center;gap:8px;font:600 16px var(--body);padding:13px 22px;
      border-radius:999px;text-decoration:none;border:2px solid var(--ink);cursor:pointer;
      transition:transform .12s ease,box-shadow .12s ease}
 .btn-ink{background:var(--ink);color:var(--milk);box-shadow:4px 4px 0 var(--lilac)}
@@ -74,7 +74,7 @@ td{padding:12px 10px 12px 0;border-bottom:1px solid var(--rule);vertical-align:t
 /* ---------- footer ---------- */
 .site-foot{border-top:2px solid var(--ink);margin-top:40px}
 .site-foot .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding-top:26px;padding-bottom:40px}
-.site-foot .mark{font:800 20px var(--display);font-variation-settings:"wdth" 80;margin-right:auto;display:flex;align-items:center;gap:10px}
+.site-foot .mark{font:600 20px var(--display);margin-right:auto;display:flex;align-items:center;gap:10px}
 .site-foot a{color:var(--ink);font-size:15px}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
