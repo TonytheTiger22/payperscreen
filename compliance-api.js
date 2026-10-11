@@ -54,9 +54,14 @@ const priced = (price, description, extras = {}) => ({
 // without already knowing the URL. Purely additive: has no effect on the
 // payment flow itself, only on whether the route shows up in a discovery
 // listing.
+// Each paid route reports its public URL as the x402 `resource`, so a
+// payment settles for api.payperscreen.com even when payperscreen.com calls
+// the API over Railway's generated or internal hostname. Bazaar indexes by
+// this URL. Payment matching uses `accepts`, not `resource`.
 app.use(paymentMiddleware(
   {
     "GET /screen": priced("$0.02", "Sanctions screening", {
+      resource: PUBLIC_API + "/screen",
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { name: "Jane Doe", dob: "", country: "", type: "Individual" },
@@ -75,6 +80,7 @@ app.use(paymentMiddleware(
       }),
     }),
     "GET /context": priced("$0.05", "Field comparison", {
+      resource: PUBLIC_API + "/context",
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { name: "Jane Doe" },
@@ -86,6 +92,7 @@ app.use(paymentMiddleware(
       }),
     }),
     "GET /screen-address": priced("$0.02", "Crypto address screening: OFAC sanctions, stablecoin freezes and known hack proceeds", {
+      resource: PUBLIC_API + "/screen-address",
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { address: "0x0000000000000000000000000000000000dEaD" },
@@ -99,6 +106,7 @@ app.use(paymentMiddleware(
       }),
     }),
     "GET /screen-email": priced("$0.02", "Email trust check", {
+      resource: PUBLIC_API + "/screen-email",
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { email: "someone@example.com" },
@@ -112,6 +120,7 @@ app.use(paymentMiddleware(
       }),
     }),
     "GET /screen-ip": priced("$0.01", "IP risk check (beta)", {
+      resource: PUBLIC_API + "/screen-ip",
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { ip: "1.2.3.4" },
