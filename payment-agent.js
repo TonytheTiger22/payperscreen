@@ -174,6 +174,17 @@ const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
   : "unknown";
 
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDateTime = (iso) => new Date(iso).toLocaleString("en-GB",
+  { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+function ago(iso) {
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+  if (min < 60) return min <= 1 ? "just now" : `${min} minutes ago`;
+  const h = Math.round(min / 60);
+  if (h < 48) return h === 1 ? "1 hour ago" : `${h} hours ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
 app.get("/lists", async (_, res) => {
   const template = readFileSync(process.cwd() + "/public/lists-template.html", "utf8");
   try {
@@ -207,12 +218,19 @@ app.get("/lists", async (_, res) => {
    verify against these sources directly for anything high-stakes:</p>
 <ul class="not-yet">${missing.map(([, v]) => `<li>${v}</li>`).join("")}</ul>`
       : "";
-    res.send(template.replace("__LISTS_TABLE__", table).replace("__NOT_YET__", notYet));
+    // The single most recent refresh across every list, shown above the table.
+    const newest = lists.filter((l) => l.refreshedAt)
+      .sort((a, b) => new Date(b.refreshedAt) - new Date(a.refreshedAt))[0];
+    const latest = newest
+      ? `<p class="latest">Most recent list update: ${esc(newest.label)}, ${fmtDateTime(newest.refreshedAt)}
+         <span>· ${ago(newest.refreshedAt)}</span></p>`
+      : "";
+    res.send(template.replace("__LATEST__", latest).replace("__LISTS_TABLE__", table).replace("__NOT_YET__", notYet));
   } catch (err) {
     const fallback = `<p><strong>Live list data is temporarily unavailable</strong>
       (${String(err.message || err)}). Try again shortly, or see
       <a href="/docs">/docs</a> for what's checked in general.</p>`;
-    res.send(template.replace("__LISTS_TABLE__", fallback));
+    res.send(template.replace("__LATEST__", "").replace("__LISTS_TABLE__", fallback).replace("__NOT_YET__", ""));
   }
 });
 // --- Case management portal: magic-link auth + each account's open queue ---
