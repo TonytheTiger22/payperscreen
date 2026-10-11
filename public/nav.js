@@ -14,8 +14,8 @@
 
   // Two overlapping pastel discs, printed slightly off-register: the mark.
   var MARK = '<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">' +
-    '<circle cx="9" cy="10" r="8" fill="#CDBBFF" style="mix-blend-mode:multiply"/>' +
-    '<circle cx="17" cy="10" r="8" fill="#FFC8A6" style="mix-blend-mode:multiply"/></svg>';
+    '<circle cx="9" cy="10" r="8" fill="#E6DDFF" style="mix-blend-mode:multiply"/>' +
+    '<circle cx="17" cy="10" r="8" fill="#FFE4D2" style="mix-blend-mode:multiply"/></svg>';
 
   var css = document.createElement("style");
   css.textContent =
@@ -28,7 +28,7 @@
     "letter-spacing:-.02em;color:#2B1A3F;text-decoration:none;padding:12px 16px 12px 0;margin-right:auto}" +
     "#site-nav a.l{color:#6B5A80;text-decoration:none;padding:7px 13px;border-radius:999px}" +
     "#site-nav a.l:hover{color:#2B1A3F;background:#F3EEFB}" +
-    "#site-nav a.l.on{color:#2B1A3F;background:#CDBBFF}" +
+    "#site-nav a.l.on{color:#2B1A3F;background:#E6DDFF}" +
     "#site-nav a:focus-visible{outline:3px solid #5A3DC8;outline-offset:2px}";
   document.head.appendChild(css);
 
