@@ -45,6 +45,22 @@ export const EVM_FEEDS = [
 export const TRON_FEED = { token: "USDT", issuer: "Tether", chain: "tron",
   contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", api: "https://api.trongrid.io" };
 
+// The EVM chains need a node that serves historical logs. Free public nodes
+// no longer do, so an EVM feed is only synced (and only claimed as covered)
+// when its RPC variable is set, e.g. ETH_RPC_URL=https://mainnet.infura.io/v3/<key>.
+export const enabledFeeds = () => [TRON_FEED, ...EVM_FEEDS.filter((f) => process.env[f.rpcEnv])];
+
+const CHAIN_NAME = { tron: "Tron", ethereum: "Ethereum", base: "Base", arbitrum: "Arbitrum", optimism: "Optimism" };
+const listJoin = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+// Plain-language coverage of the feeds actually being synced, e.g.
+// "USDT on Tron" or "USDT on Tron and Ethereum, and USDC on Ethereum and Base".
+export function coverage(feeds = enabledFeeds()) {
+  const byToken = {};
+  for (const f of feeds) (byToken[f.token] ||= []).push(CHAIN_NAME[f.chain] || f.chain);
+  return Object.entries(byToken).map(([t, cs]) => `${t} on ${listJoin(cs)}`).join(", and ");
+}
+export const issuers = (feeds = enabledFeeds()) => [...new Set(feeds.map((f) => f.issuer))];
+
 const SOURCE = "STABLECOIN-FREEZE";
 const CONFIRMATIONS = 64;            // stay a little behind the chain head
 const MAX_REQUESTS_PER_RUN = 1500;   // per feed; a slow RPC resumes next run
@@ -204,7 +220,10 @@ export async function refreshStablecoinFreezes(db, opts = {}) {
   const log = opts.log || console.log;
   await ensureTables(db);
   const results = {};
-  for (const feed of [TRON_FEED, ...EVM_FEEDS]) {
+  const skipped = EVM_FEEDS.filter((f) => !process.env[f.rpcEnv]);
+  if (skipped.length)
+    log(`[${SOURCE}] not synced (no RPC set): ${skipped.map((f) => `${f.token}/${f.chain} (${f.rpcEnv})`).join(", ")}`);
+  for (const feed of enabledFeeds()) {
     try {
       results[`${feed.token}/${feed.chain}`] = feed.chain === "tron" ? await syncTron(db, feed, opts) : await syncEvmFeed(db, feed, opts);
     } catch (err) {

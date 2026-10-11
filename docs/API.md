@@ -138,11 +138,11 @@ nothing to compare (no prior hit for these parameters). You aren't charged.
 Exact-match lookup against three lists, each reported separately:
 
 1. **OFAC's sanctioned digital-currency addresses** (`sanctioned`, `matches`).
-2. **Stablecoin freezes** (`frozenByIssuer`): wallets Tether has blacklisted
-   for USDT (Tron, Ethereum) or Circle for USDC (Ethereum, Base, Arbitrum,
-   Optimism), read directly from the token contracts' public on-chain events
-   and refreshed daily. USDT/USDC sent to a frozen wallet can't be moved.
-   Not a sanctions designation.
+2. **Stablecoin freezes** (`frozenByIssuer`): wallets Tether has frozen for
+   USDT on Tron, read directly from the token contract's public on-chain
+   events and refreshed daily. `frozenByIssuer.coverage` states exactly which
+   tokens and chains were checked. USDT sent to a frozen wallet can't be
+   moved. Not a sanctions designation.
 3. **Known hack and exploit proceeds** (`hackFunds`): a curated list of
    addresses publicly identified as attacker-controlled or holding stolen
    funds, taken from law-enforcement notices (e.g. the FBI's Bybit notice)
@@ -173,8 +173,9 @@ string match, not fuzzy. A sanctions match names the listed party
   "frozenByIssuer": {
     "listed": false,
     "matches": [],
-    "source": "Tether (USDT) and Circle (USDC) blacklists, read from the token contracts on-chain",
-    "note": "The stablecoin issuer has frozen this address ... Not a sanctions designation."
+    "source": "Tether freeze list, read from the token contracts on-chain",
+    "coverage": "USDT on Tron",
+    "note": "The stablecoin issuer has frozen this address ... Covers USDT on Tron only; a frozen wallet on another chain won't show here."
   },
   "hackFunds": {
     "listed": true,
@@ -279,9 +280,9 @@ supported yet. VPN/hosting classification and community abuse reports
   download fails, that day's refresh falls back to the 0xB10C extraction of
   the same file, which has no party names.
 - **Stablecoin freezes** (part of `/screen-address`): the current Tether USDT
-  blacklist on Tron and Ethereum and Circle USDC blacklist on Ethereum, Base,
-  Arbitrum and Optimism, rebuilt from the contracts' own events (freezes and
-  unfreezes) and refreshed daily. USDT0, PYUSD and USDC on Solana aren't covered yet.
+  freeze list on Tron, rebuilt from the contract's own events (freezes and
+  unfreezes) and refreshed daily. USDT on Ethereum and Circle's USDC freezes
+  aren't covered yet.
 - **Known hack proceeds** (part of `/screen-address`): a curated, hand-reviewed
   list from public primary sources: FBI notices naming wallets used in North
   Korean thefts (Bybit; Atomic Wallet, Alphapo and CoinsPaid; Stake.com) and

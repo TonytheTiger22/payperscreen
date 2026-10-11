@@ -6,7 +6,7 @@ import { createCdpFacilitatorClient } from "@coinbase/cdp-sdk/x402";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import { runEmailChecks } from "./checks/email-trust.js";
 import { runIpChecks } from "./checks/ip-trust.js";
-import { lookupFreezes } from "./stablecoin-freezes.js";
+import { lookupFreezes, coverage as freezeCoverage, issuers as freezeIssuers } from "./stablecoin-freezes.js";
 import { compareDob } from "./dob.js";
 
 // Base mainnet (CAIP-2). Was "eip155:84532" (Base Sepolia testnet).
@@ -259,6 +259,7 @@ async function loadedSources() {
 }
 const HIT_THRESHOLD = 0.4;
 
+const listJoin = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
 const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 function compareField(subjectVal, listedVal) {
@@ -369,7 +370,7 @@ app.get("/lists-meta", async (req, res) => {
       ...nameLists,
       ...(freezeCount > 0 ? [{
         source: "STABLECOIN-FREEZE",
-        label: "Stablecoin freezes (Tether USDT and Circle USDC blacklists, on-chain)",
+        label: `Stablecoin freezes (${freezeCoverage()}, read on-chain)`,
         kind: "Crypto addresses",
         matchType: "Exact",
         records: freezeCount,
@@ -416,10 +417,11 @@ app.get("/screen-address", async (req, res) => {
     frozenByIssuer: {
       listed: freezes.length > 0,
       matches: freezes.map((f) => ({ token: f.token, issuer: f.issuer, chain: f.chain })),
-      source: "Tether (USDT) and Circle (USDC) blacklists, read from the token contracts on-chain",
+      source: `${listJoin(freezeIssuers())} freeze list${freezeIssuers().length > 1 ? "s" : ""}, read from the token contracts on-chain`,
+      coverage: freezeCoverage(),
       note: "The stablecoin issuer has frozen this address, usually at law enforcement's request. " +
-            "USDT/USDC sent to it can't be moved. Not a sanctions designation. Covers USDT on Tron and " +
-            "Ethereum, and USDC on Ethereum, Base, Arbitrum and Optimism.",
+            "Tokens sent to it can't be moved. Not a sanctions designation. Covers " + freezeCoverage() +
+            " only; a frozen wallet on another chain won't show here.",
     },
     hackFunds: {
       listed: hacks.length > 0,

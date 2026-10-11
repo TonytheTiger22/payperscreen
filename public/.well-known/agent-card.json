@@ -73,7 +73,7 @@
     {
       "id": "screen-address",
       "name": "Crypto wallet address screening",
-      "description": "Exact-match lookup against OFAC's sanctioned digital-currency addresses, Tether (USDT) and Circle (USDC) freeze lists read on-chain (frozenByIssuer), and a curated list of addresses tied to major hacks (hackFunds). Each reported separately.",
+      "description": "Exact-match lookup against OFAC's sanctioned digital-currency addresses, Tether's USDT freeze list on Tron read on-chain (frozenByIssuer), and a curated list of addresses tied to major hacks (hackFunds). Each reported separately.",
       "method": "GET",
       "path": "/screen-address",
       "price": {
