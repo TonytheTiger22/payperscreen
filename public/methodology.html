@@ -38,6 +38,16 @@
  .gap{background:var(--peach);border-radius:18px;padding:16px 20px;margin:16px 0;border:1px solid var(--line)}
  .gap b{display:block;font:600 19px var(--display);margin-bottom:4px}
  .gap p{margin:0;font-size:15.5px}
+ .results{margin:8px 0 10px}
+ .outcomes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 28px}
+ @media (max-width:700px){.outcomes{grid-template-columns:1fr}}
+ .outcome{border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+ .outcome > b{display:block;font:600 21px var(--display);margin-bottom:6px}
+ .outcome p{margin:0 0 10px}
+ .outcome ul{margin:0 0 10px;padding-left:20px}
+ .outcome li{margin-bottom:7px}
+ .ok-out{background:var(--mint)}
+ .hit-out{background:var(--peach)}
  .callout{background:var(--lilac);border-radius:22px;padding:20px 24px;margin:22px 0;border:1px solid var(--line)}
  .callout b{display:block;margin-bottom:6px}
  ul{margin:0 0 14px;padding-left:22px}
@@ -60,22 +70,48 @@
     isn't listed here, we don't check it, and we say so explicitly where a
     gap is a real limitation, not just an omission.</p>
 
- <div class="callout">
-  <b>How to read "risk level"</b>
-  The email and IP checks don't use a list match. They run several
-  independent signals and combine them. Each signal is marked <span class="sev critical">critical</span>
-  or <span class="sev minor">minor</span> ahead of time, based on how strong a problem it would mean on
-  its own. A single flagged critical signal sets <code>redFlag: true</code>
-  and <code>riskLevel: "high"</code> by itself, regardless of how many minor
-  signals also flagged. That's the whole purpose of the distinction. With no
-  critical flags, risk scales with how many minor signals flagged: 0 is
-  <code>low</code>, 1–2 is <code>medium</code>, 3+ is <code>high</code>.
-  Every signal that couldn't be evaluated is marked <code>unknown</code>, never
-  folded silently into a pass.
+ <div class="results">
+  <h2 style="margin-top:8px">What a result means, and what you do next</h2>
+  <div class="outcomes">
+   <div class="outcome ok-out">
+    <b>No hit</b>
+    <p>Nothing matched on any list we checked, and no warning signals fired.</p>
+    <ul>
+     <li>You can carry on. In an automated flow, this is the "approve" path.</li>
+     <li>The check is saved with a reference and a timestamp, so you can show later that you screened this person or wallet, and against which lists.</li>
+     <li>It's closed automatically. Nothing lands in your case queue.</li>
+    </ul>
+    <p class="small muted">A clear result covers the lists named in the response, as they were on that day. It isn't a guarantee about the person or wallet in general.</p>
+   </div>
+   <div class="outcome hit-out">
+    <b>A hit or a warning</b>
+    <p>Something matched or looked risky. <strong>This is not a final answer: a person on your side needs to look at it.</strong></p>
+    <ul>
+     <li><b>Pause</b> the onboarding, payout or transfer until it's reviewed.</li>
+     <li><b>Compare the details.</b> Many name matches are someone else with a similar name. The field comparison (5¢) puts date of birth, nationality and type side by side with the listed record.</li>
+     <li><b>Decide:</b> <em>clear</em> it if it's clearly not the same person or the warning doesn't apply, or <em>escalate</em> it to your compliance lead if it might be.</li>
+     <li>With an account, every hit waits in your case queue with Clear and Escalate buttons, and your decision is recorded next to the check.</li>
+    </ul>
+    <p class="small muted">We report what matched and how closely. The decision, and anything you report to authorities, is yours.</p>
+   </div>
+  </div>
 
-  <br><br><b>None of this involves an AI model.</b> Every signal on this page, for every service, is
-  plain deterministic code against a real data source. Given the same input
-  and the same underlying data, it returns the same result every time.
+  <h3>Email and IP checks: how the risk level is set</h3>
+  <p>These don't match a list. They run several separate tests and combine them. Each test is labelled
+     <span class="sev critical">critical</span> or <span class="sev minor">minor</span> in advance,
+     depending on how serious it would be on its own.</p>
+  <ul>
+   <li><b>Any critical test fails:</b> high risk, flagged straight away.</li>
+   <li><b>Only minor tests fail:</b> none is low risk, 1 or 2 is medium, 3 or more is high.</li>
+   <li><b>A test couldn't run</b> (a server didn't answer, say): it's shown as "unknown", never counted as a pass.</li>
+  </ul>
+  <p class="small muted">For developers: a critical failure sets <code>redFlag: true</code> and
+     <code>riskLevel: "high"</code>; otherwise <code>riskLevel</code> is <code>low</code>, <code>medium</code>
+     or <code>high</code> from the count of minor flags.</p>
+
+  <h3>No AI makes these calls</h3>
+  <p>Every check on this page is plain, fixed code run against a real data source. The same input on the
+     same data always gives the same result.</p>
  </div>
 
  <h2 id="name">Sanctions name screening</h2>
