@@ -345,12 +345,18 @@ async function lookupAddress(rawAddress) {
   const normalized = looksLikeEvm(address) ? address.toLowerCase() : address;
 
   const { rows } = await pool.query(
-    `SELECT asset, address, source FROM sanctioned_addresses
+    `SELECT asset, address, source, entity_name, entity_uid FROM sanctioned_addresses
      WHERE address_normalized = $1`,
     [normalized]
   );
   return rows;
 }
+
+// The daily OFAC refresh adds these columns too; doing it at startup as well
+// means lookups work on an older database before that first refresh runs.
+await pool.query(`ALTER TABLE sanctioned_addresses ADD COLUMN IF NOT EXISTS entity_name TEXT;
+                  ALTER TABLE sanctioned_addresses ADD COLUMN IF NOT EXISTS entity_uid TEXT`)
+  .catch((e) => console.error("sanctioned_addresses migration failed:", String(e.message || e)));
 
 // Free, unauthenticated — just counts and refresh timestamps, nothing
 // that needs paying for. Powers the public "/lists" page on the site.
@@ -424,7 +430,9 @@ app.get("/screen-address", async (req, res) => {
     address,
     screenedAt: new Date().toISOString(),
     sanctioned: matches.length > 0,
-    matches: matches.map((m) => ({ asset: m.asset, source: m.source })),
+    matches: matches.map((m) => ({ asset: m.asset, source: m.source,
+      ...(m.entity_name ? { listedParty: m.entity_name } : {}),
+      ...(m.entity_uid ? { sdnUid: m.entity_uid } : {}) })),
     source: "OFAC SDN digital currency addresses",
     frozenByIssuer: {
       listed: freezes.length > 0,
@@ -442,9 +450,8 @@ app.get("/screen-address", async (req, res) => {
             "as attacker-controlled or holding stolen funds. Not a sanctions designation. Covers " +
             "direct links to these wallets only, not funds already moved on through other wallets or mixers.",
     },
-    note: "Exact address match only. This source has no linked entity " +
-          "name, DOB, or program per address. \"Not sanctioned\" reflects " +
-          "this list only, not a guarantee the address is clean.",
+    note: "Exact address match only. A sanctions match names the listed party (listedParty, sdnUid) " +
+          "as OFAC records it. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
   });
 });
 

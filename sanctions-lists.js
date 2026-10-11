@@ -201,40 +201,122 @@ export async function refreshSource(client, source, log = console.log) {
 }
 
 // ---- OFAC sanctioned crypto addresses --------------------------------------
-// Re-pulls the per-asset files that ingest-crypto-addresses.mjs loads (see
-// that file for provenance), atomically, with a sanity floor.
+// Primary source: OFAC's own sdn_advanced.xml, the only place the addresses
+// exist as structured data. Parsed here so we pick up every asset OFAC uses
+// ("Digital Currency Address - <ASSET>"), not a fixed list, and so each
+// address keeps the name and UID of the listed party it belongs to.
+// Fallback: the per-asset files from 0xB10C/ofac-sanctioned-digital-currency-
+// addresses (a nightly parse of the same XML, fixed asset list, no names), used
+// only if Treasury's download or the parse fails.
+const OFAC_ADVANCED_URL = "https://sanctionslistservice.ofac.treas.gov/api/download/sdn_advanced.xml";
 const CRYPTO_RAW = "https://raw.githubusercontent.com/0xB10C/ofac-sanctioned-digital-currency-addresses/lists";
-const CRYPTO_EVM = new Set(["ETH", "USDT", "USDC", "ARB", "BSC", "ETC"]);
 const CRYPTO_ASSETS = ["XBT", "ETH", "USDT", "USDC", "TRX", "SOL", "LTC", "BCH",
   "ARB", "BSC", "ETC", "DASH", "XMR", "ZEC", "XVG", "BTG", "BSV", "XRP"];
+const isEvm = (address) => /^0x[0-9a-fA-F]{40}$/.test(address);
+// EVM (0x hex) addresses are case-insensitive; everything else (Base58,
+// bech32 with mixed case not allowed, Monero...) is compared exactly.
+export const normalizeAddress = (address) => (isEvm(address) ? address.toLowerCase() : address);
+
+const xmlText = (s) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim();
+
+// Pure: sdn_advanced.xml string in, { version, addresses: [{asset, address,
+// name, uid}] } out. Regex over the raw text rather than a DOM: the file is
+// ~100 MB and only a few hundred parties carry addresses.
+export function parseOFACCrypto(xml) {
+  const types = new Map();   // FeatureTypeID -> asset code
+  for (const m of xml.matchAll(/<FeatureType\b[^>]*\bID="(\d+)"[^>]*>\s*Digital Currency Address - ([^<]+?)\s*<\/FeatureType>/g))
+    types.set(m[1], m[2].trim().toUpperCase());
+  if (!types.size) return { version: null, addresses: [] };
+
+  const d = xml.match(/<DateOfIssue>\s*<Year>(\d{4})<\/Year>\s*<Month>(\d{1,2})<\/Month>\s*<Day>(\d{1,2})<\/Day>/);
+  const version = d ? `${d[1]}-${d[2].padStart(2, "0")}-${d[3].padStart(2, "0")}` : null;
+
+  const out = [];
+  const seen = new Set();
+  for (const pm of xml.matchAll(/<DistinctParty\b([^>]*)>([\s\S]*?)<\/DistinctParty>/g)) {
+    const body = pm[2];
+    if (!body.includes("FeatureTypeID")) continue;
+    let name = null;
+    const uid = (pm[1].match(/\bFixedRef="(\d+)"/) || [])[1] || null;
+    for (const fm of body.matchAll(/<Feature\b[^>]*\bFeatureTypeID="(\d+)"[^>]*>([\s\S]*?)<\/Feature>/g)) {
+      const asset = types.get(fm[1]);
+      if (!asset) continue;
+      if (name === null) {
+        const alias = body.match(/<Alias\b[^>]*\bPrimary="true"[^>]*>([\s\S]*?)<\/Alias>/);
+        const parts = alias ? [...alias[1].matchAll(/<NamePartValue\b[^>]*>([^<]*)<\/NamePartValue>/g)].map((x) => xmlText(x[1])) : [];
+        name = parts.filter(Boolean).join(" ") || "";
+      }
+      for (const vm of fm[2].matchAll(/<VersionDetail\b[^>]*>([^<]+)<\/VersionDetail>/g)) {
+        const address = xmlText(vm[1]);
+        const key = asset + "|" + normalizeAddress(address);
+        if (!address || seen.has(key)) continue;
+        seen.add(key);
+        out.push({ asset, address, name: name || null, uid });
+      }
+    }
+  }
+  return { version, addresses: out };
+}
+
+async function fetchCryptoFromOFAC(log) {
+  const res = await fetch(OFAC_ADVANCED_URL, { redirect: "follow", signal: AbortSignal.timeout(180000) });
+  if (!res.ok) throw new Error(`sdn_advanced.xml download failed, HTTP ${res.status}`);
+  const { version, addresses } = parseOFACCrypto(await res.text());
+  log(`[OFAC-SDN-CRYPTO] parsed ${addresses.length} addresses from sdn_advanced.xml (${version ?? "no date"})`);
+  return { version, addresses, origin: "ofac" };
+}
+
+async function fetchCryptoFromMirror() {
+  const addresses = [];
+  for (const asset of CRYPTO_ASSETS) {
+    const res = await fetch(`${CRYPTO_RAW}/sanctioned_addresses_${asset}.txt`, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) throw new Error(`${asset} download failed, HTTP ${res.status}`);
+    for (const line of (await res.text()).split("\n")) {
+      const address = line.trim();
+      if (address) addresses.push({ asset, address, name: null, uid: null });
+    }
+  }
+  return { version: null, addresses, origin: "mirror" };
+}
 
 export async function refreshCryptoAddresses(client, log = console.log) {
   const SOURCE = "OFAC-SDN-CRYPTO";
-  const rows = [];
-  for (const asset of CRYPTO_ASSETS) {
-    const res = await fetch(`${CRYPTO_RAW}/sanctioned_addresses_${asset}.txt`, { signal: AbortSignal.timeout(30000) });
-    if (!res.ok) throw new Error(`${SOURCE}: ${asset} download failed, HTTP ${res.status}; previous data left untouched`);
-    for (const line of (await res.text()).split("\n")) {
-      const address = line.trim();
-      if (address) rows.push([asset, address, CRYPTO_EVM.has(asset) ? address.toLowerCase() : address]);
-    }
+  const MIN = 500;
+  let data;
+  try {
+    data = await fetchCryptoFromOFAC(log);
+    if (data.addresses.length < MIN) throw new Error(`only ${data.addresses.length} addresses parsed`);
+  } catch (err) {
+    log(`[${SOURCE}] OFAC direct parse failed (${String(err.message || err)}); using the 0xB10C mirror`);
+    data = await fetchCryptoFromMirror();
   }
-  if (rows.length < 500)
+  const rows = data.addresses;
+  if (rows.length < MIN)
     throw new Error(`${SOURCE}: only ${rows.length} addresses downloaded; previous data left untouched`);
   try {
     await client.query("BEGIN");
+    // Migration-safe: older databases have the table without these columns.
+    await client.query("ALTER TABLE sanctioned_addresses ADD COLUMN IF NOT EXISTS entity_name TEXT");
+    await client.query("ALTER TABLE sanctioned_addresses ADD COLUMN IF NOT EXISTS entity_uid TEXT");
     await client.query("DELETE FROM sanctioned_addresses WHERE source = $1", [SOURCE]);
-    await client.query(
-      `INSERT INTO sanctioned_addresses (source, asset, address, address_normalized)
-       SELECT $1, a, b, c FROM unnest($2::text[], $3::text[], $4::text[]) AS t(a, b, c)
-       ON CONFLICT (source, asset, address_normalized) DO NOTHING`,
-      [SOURCE, rows.map((r) => r[0]), rows.map((r) => r[1]), rows.map((r) => r[2])]);
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const part = rows.slice(i, i + CHUNK);
+      await client.query(
+        `INSERT INTO sanctioned_addresses (source, asset, address, address_normalized, entity_name, entity_uid)
+         SELECT $1, a, b, c, n, u FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::text[]) AS t(a, b, c, n, u)
+         ON CONFLICT (source, asset, address_normalized) DO NOTHING`,
+        [SOURCE, part.map((r) => r.asset), part.map((r) => r.address), part.map((r) => normalizeAddress(r.address)),
+         part.map((r) => r.name), part.map((r) => r.uid)]);
+    }
+    const version = data.origin === "ofac" ? (data.version || new Date().toISOString().slice(0, 10))
+                                           : new Date().toISOString().slice(0, 10) + " (mirror)";
     await client.query(
       `INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
        ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
-      [SOURCE, new Date().toISOString().slice(0, 10)]);
+      [SOURCE, version]);
     await client.query("COMMIT");
   } catch (err) { await client.query("ROLLBACK"); throw err; }
-  log(`[${SOURCE}] loaded ${rows.length} addresses`);
+  log(`[${SOURCE}] loaded ${rows.length} addresses (${data.origin})`);
   return rows.length;
 }
