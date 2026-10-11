@@ -441,6 +441,225 @@
      "role": "attacker EOA"
     }
    ]
+  },
+  {
+   "id": "atomic-alphapo-coinspaid-2023",
+   "name": "Atomic Wallet, Alphapo and CoinsPaid",
+   "date": "2023-06-03",
+   "lossUsd": 197000000,
+   "attribution": "North Korea (TraderTraitor / Lazarus / APT38), per the FBI",
+   "sources": [
+    "https://www.fbi.gov/news/press-releases/fbi-identifies-cryptocurrency-funds-stolen-by-dprk"
+   ],
+   "addresses": [
+    {
+     "address": "3LU8wRu4ZnXP4UM8Yo6kkTiGHM9BubgyiG",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "39idqitN9tYNmq3wYanwg3MitFB5TZCjWu",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "3AAUBbKJorvNhEUFhKnep9YTwmZECxE4Nk",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "3PjNaSeP8GzLjGeu51JR19Q2Lu8W2Te9oc",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "3NbdrezMzAVVfXv5MTQJn4hWqKhYCTCJoB",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "34VXKa5upLWVYMXmgid6bFM4BaQXHxSUoL",
+     "chain": "bitcoin",
+     "role": "holds or held stolen funds (FBI)"
+    }
+   ]
+  },
+  {
+   "id": "stake-2023",
+   "name": "Stake.com",
+   "date": "2023-09-04",
+   "lossUsd": 41000000,
+   "attribution": "North Korea (Lazarus / APT38), per the FBI",
+   "sources": [
+    "https://www.fbi.gov/news/press-releases/fbi-identifies-lazarus-group-cyber-actors-as-responsible-for-theft-of-41-million-from-stakecom"
+   ],
+   "addresses": [
+    {
+     "address": "0x94f1b9b64e2932f6a2db338f616844400cd58e8a",
+     "chain": "ethereum",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xba36735021a9ccd7582ebc7f70164794154ff30e",
+     "chain": "ethereum",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xbda83686c90314cfbaaeb18db46723d83fdf0c83",
+     "chain": "ethereum",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0x7d84d78bb9b6044a45fa08b7fe109f2c8648ab4e",
+     "chain": "ethereum",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xff29a52a538f1591235656f71135c24019bf82e5",
+     "chain": "bsc",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0x0004a76e39d33edfeac7fc3c8d3994f54428a0be",
+     "chain": "bsc",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xbcedc4f3855148df3ea5423ce758bda9f51630aa",
+     "chain": "bsc",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xe03a1ae400fa54283d5a1c4f8b89d3ca74afbd62",
+     "chain": "bsc",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0x95b6656838a1d852dd1313c659581f36b2afb237",
+     "chain": "bsc",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xa2e898180d0bc3713025d8590615a832397a8032",
+     "chain": "polygon",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "0xa26213638f79f2ed98d474cbcb87551da909685e",
+     "chain": "polygon",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qfesn3jj65fhmf00hh45ueql8je8jae6ep3qk84",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qtalh4l8qc0p2qw70axxjhwu9z7rm93td5sgsl3",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qlq3s8hgczfe62yt94xqasdr5ftuuyrc5kgvpwr",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qy78e6ml7f3p438jqrrlzsewx625y0sr7jsesa7",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qqa682d2q0wtx5gfpxh4yfl9s4k00ukakl5fpk5",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qmqgkxzzfzjqepptw9xzxy03672xg55q559fmvr",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qdjmwm8q74r0yx99nghaeu33xdmz3lqnt2uspqv",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qrqv5f7jxhp67jcgk9wv5jx4795wlntvhdz2a7j",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1q82gvk20m08uctmmr97p2mqyxtyh6xf68rwe0t9",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1q8y9wc2p9444y8r77xtmswxm9qqw90nrpufkx47",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qqvpjgaurtnhc8smkmdtwhx9c8207m0prsyxyjx",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qfcl8a4ck7uu3phgg5fj6g9servp6f85j3frcd3",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qqydp9muxtnxyet3ryfqc467wjtm23f0r7eh5aa",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qe4n22sduyylws74aewc6y6g32nglvglqu7hted",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qy0ggpxu8f6lta6vf44vervr4py2uu829grj8yh",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1q32dzmf4t5a3xxvyxn07scgpmjznnz3kwjhw8uc",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qkrkxgvp2te3xhgn74c2azt4flf9u05y56kh3a9",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1q6w7qlaj3mfkgfrxwtvhw45cu86wew7xpjfqcmy",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qc593a4d2hznk2ext3k2zmpdrqazlhhh80m4xas",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qtnuzecpqaakj0dt855n24dv7u5pme7vyct2cf2",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qvjpgxa2g3nvyw2hnclptextllu9dr4vkew8jfp",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    },
+    {
+     "address": "bc1qg0qygyv3qfp8cjyy99ch9vc9dp876vl8wys67u",
+     "chain": "bitcoin",
+     "role": "received stolen funds (FBI)"
+    }
+   ]
   }
  ]
 }

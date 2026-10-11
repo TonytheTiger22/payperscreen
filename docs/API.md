@@ -283,9 +283,10 @@ supported yet. VPN/hosting classification and community abuse reports
   Arbitrum and Optimism, rebuilt from the contracts' own events (freezes and
   unfreezes) and refreshed daily. USDT0, PYUSD and USDC on Solana aren't covered yet.
 - **Known hack proceeds** (part of `/screen-address`): a curated, hand-reviewed
-  list from public primary sources, currently the FBI's Bybit notice and the
-  attacker wallets published for the Kelp DAO, Drift, Truebit, Resolv and
-  Step Finance hacks. Direct matches only; see `/lists` for the current count.
+  list from public primary sources: FBI notices naming wallets used in North
+  Korean thefts (Bybit; Atomic Wallet, Alphapo and CoinsPaid; Stake.com) and
+  the attacker wallets published for the Kelp DAO, Drift, Truebit, Resolv and
+  Step Finance hacks. Ethereum, BNB Chain, Polygon, Solana and Bitcoin. Direct matches only; see `/lists` for the current count.
 - All are snapshots, re-downloaded automatically once a day (a failed
   download keeps the previous copy; `/lists` shows each list's real
   last-refreshed date). If
