@@ -2,9 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sign in | PayPerScreen</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/theme.css">
 <style>
  :root{--ink:#2B1A3F;--dim:#6B5A80;--line:#DCD2EA;--go:#1C7450;--stop:#B42A4A;--amber:#8F5600}
@@ -48,41 +46,24 @@
  td .row button{padding:7px 14px}
 </style></head><body><main>
 <h1>Sign in to your case queue</h1>
-<p class="sub">No password: enter your email and we'll give you a one-time
-   sign-in link. Each link works once and expires after 15 minutes.</p>
+<p class="sub">Accounts are invite-only for now. If you have an invite link, open it to
+   sign in. Each link works once.</p>
 
 <div class="card">
- <label>Email address</label>
- <input id="email" type="email" placeholder="you@yourbusiness.com">
- <button class="p" id="go">Send me a sign-in link</button>
- <div id="err" class="err"></div>
- <div id="out"></div>
+ <p style="margin:0 0 14px">Want a case queue for your team? Possible matches from your checks land
+    there for you to clear or escalate.</p>
+ <a class="btn btn-ink" id="ask" href="mailto:hello@albatrossletter.com?subject=PayPerScreen%20invite">Ask for an invite</a>
+ <p class="note" id="ask-note">Or email <a id="ask-mail" href="mailto:hello@albatrossletter.com">hello@albatrossletter.com</a>.</p>
 </div>
 
 <a class="back" href="/try">Back to the screening tool</a>
-
+</main>
 <script>
-const $=(i)=>document.getElementById(i);
-$("go").onclick=async()=>{
- const email=$("email").value.trim();
- $("err").textContent=""; $("out").innerHTML="";
- if(!email){$("err").textContent="Enter an email address.";return;}
- $("go").disabled=true; $("go").textContent="Sending…";
- try{
-  const res=await fetch("/api/auth/request-link",{method:"POST",
-    headers:{"Content-Type":"application/json"}, body:JSON.stringify({email})});
-  const r=await res.json();
-  if(!r.ok){$("err").textContent=r.error||"Something went wrong.";return;}
-  $("out").innerHTML='<div class="linkbox"><b>Email delivery isn’t wired up yet.</b> '
-   +'here’s your link directly: <a href="'+r.link+'">'+r.link+'</a>'
-   +'<div class="note" style="margin-top:8px">In production this would land in your inbox instead '
-   +'of being shown on screen. The link expires in 15 minutes and works once.</div></div>';
- } catch(e){
-  $("err").textContent=String(e);
- } finally {
-  $("go").disabled=false; $("go").textContent="Send me a sign-in link";
- }
-};
+fetch("/api/site-info").then(r=>r.json()).then(i=>{
+ if(!i.contactEmail) return;
+ document.getElementById("ask").href="mailto:"+i.contactEmail+"?subject=PayPerScreen%20invite";
+ const m=document.getElementById("ask-mail"); m.href="mailto:"+i.contactEmail; m.textContent=i.contactEmail;
+}).catch(()=>{});
 </script>
-</main><script src="/nav.js"></script>
+<script src="/nav.js"></script>
 </body></html>

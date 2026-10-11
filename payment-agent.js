@@ -159,8 +159,14 @@ app.get("/.well-known/agent-card.json", (_, res) =>
   res.sendFile(process.cwd() + "/public/.well-known/agent-card.json", { dotfiles: "allow" }));
 app.get("/", (_, res) => res.sendFile(process.cwd() + "/public/home.html"));
 app.get("/try", (_, res) => res.sendFile(process.cwd() + "/public/landing.html"));
-app.get("/audit", (_, res) => res.sendFile(process.cwd() + "/public/audit.html"));
+// The audit trail lists every check run (names, DOBs, emails, IPs), so it is
+// operator-only: the page redirects to /admin, the data needs an admin session.
+const adminOnly = (req, res, next) => req.isAdmin ? next()
+  : res.status(401).json({ ok: false, error: "Admin login required" });
+app.get("/audit", (req, res) => req.isAdmin
+  ? res.sendFile(process.cwd() + "/public/audit.html") : res.redirect("/admin"));
 app.get("/methodology", (_, res) => res.sendFile(process.cwd() + "/public/methodology.html"));
+app.get("/privacy", (_, res) => res.sendFile(process.cwd() + "/public/privacy.html"));
 // Old path kept working in case anything still links to it.
 app.get("/landing", (_, res) => res.redirect(301, "/try"));
 
@@ -249,21 +255,30 @@ app.get("/lists", async (_, res) => {
 
 app.get("/login", (_, res) => res.sendFile(process.cwd() + "/public/login.html"));
 
+// Sign-in is invite-only until real email delivery exists: a login link
+// shown on screen would let anyone open anyone's case queue. Only an admin
+// can mint a link (an invite, valid 7 days, single use), and hands it over.
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "hello@albatrossletter.com";
+const CONTACT_X = (process.env.CONTACT_X || "AlbatrossLetter").replace(/^@/, "");
+const CONTACT_FACEBOOK = process.env.CONTACT_FACEBOOK || "AlbatrossLetter";
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 app.post("/api/auth/request-link", (req, res) => {
   const email = (req.body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.json({ ok: false, error: "Enter a valid email address" });
   }
+  if (!req.isAdmin) {
+    return res.json({ ok: false, code: "INVITE_ONLY", contact: CONTACT_EMAIL,
+      error: `Accounts are invite-only for now. Email ${CONTACT_EMAIL} and we'll send you an invite.` });
+  }
   const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const { link, expiresAt } = accounts.requestLink(email, baseUrl);
-  console.log(`Magic link for ${email}: ${link}`); // stand-in until real email delivery is wired up
-  res.json({
-    ok: true, link, expiresAt,
-    note: "Email delivery isn't wired up yet (needs a transactional email " +
-      "provider — Resend and Brevo both have a free tier), so here's the " +
-      "link directly. In production this would be emailed, not shown here.",
-  });
+  const { link, expiresAt } = accounts.requestLink(email, baseUrl, INVITE_TTL_MS);
+  res.json({ ok: true, link, expiresAt });
 });
+
+// Free: contact details for page footers (set CONTACT_EMAIL / CONTACT_X on Railway).
+app.get("/api/site-info", (_, res) => res.json({ contactEmail: CONTACT_EMAIL, x: CONTACT_X || null, facebook: CONTACT_FACEBOOK || null }));
 
 app.get("/api/auth/verify", (req, res) => {
   const result = accounts.verifyLink(req.query.token);
@@ -474,11 +489,11 @@ app.post("/api/topup", async (req, res) => {
   }
 });
 
-app.get("/api/ledger", (_, res) => res.json(ledger));
-app.get("/api/audit", (_, res) => res.json(audit.list(200)));
+app.get("/api/ledger", adminOnly, (_, res) => res.json(ledger));
+app.get("/api/audit", adminOnly, (_, res) => res.json(audit.list(200)));
 app.get("/api/verify/:ref", (req, res) => res.json(audit.verify(req.params.ref)));
 
-app.get("/api/export", (_, res) => {
+app.get("/api/export", adminOnly, (_, res) => {
   const rows = audit.list(1000);
   const cols = ["reference","client_ref","performed_at","subject_name","subject_dob",
     "subject_country","lists_checked","list_version","hit_count","top_score","top_match",
@@ -490,7 +505,7 @@ app.get("/api/export", (_, res) => {
   res.send(csv);
 });
 
-app.post("/api/reset", (_, res) => { ledger.spent = 0; ledger.lines = []; res.json(ledger); });
+app.post("/api/reset", adminOnly, (_, res) => { ledger.spent = 0; ledger.lines = []; res.json(ledger); });
 
 app.post("/api/screen-free", async (req, res) => {
   const name = (req.body.name || "").trim();

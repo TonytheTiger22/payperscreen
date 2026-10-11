@@ -58,10 +58,10 @@ export const listAccounts = () => db.prepare("SELECT * FROM accounts ORDER BY cr
 // is a signup-and-swap, not a redesign: drop in a transactional provider
 // (Resend and Brevo both have workable free tiers) and send `link`
 // instead of displaying it.
-export function requestLink(email, baseUrl) {
+export function requestLink(email, baseUrl, ttlMs = LOGIN_TOKEN_TTL_MS) {
   const token = randomUUID();
   const now = new Date();
-  const expires = new Date(now.getTime() + LOGIN_TOKEN_TTL_MS);
+  const expires = new Date(now.getTime() + ttlMs);
   db.prepare(`INSERT INTO login_tokens (token, email, created_at, expires_at)
               VALUES (?, ?, ?, ?)`)
     .run(token, email, now.toISOString(), expires.toISOString());

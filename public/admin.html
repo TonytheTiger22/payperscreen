@@ -2,9 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin | PayPerScreen</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/theme.css">
 <style>
  :root{--ink:#2B1A3F;--dim:#6B5A80;--line:#DCD2EA;--go:#1C7450;--stop:#B42A4A;--amber:#8F5600}
@@ -85,6 +83,22 @@
   <div class="who">admin<button id="signout">Sign out</button></div>
  </div>
  <p class="sub">Every account's open alerts, plus a way to seed test cases without a real payment.</p>
+
+ <div class="card">
+  <div class="lbl">Invite a customer</div>
+  <label>Their email</label>
+  <input id="i-email" type="email" placeholder="ops@theirfintech.com">
+  <button class="p" id="i-go">Create invite link</button>
+  <div id="i-err" class="err"></div>
+  <div id="i-out" class="note"></div>
+  <div class="note">Sign-in is invite-only until email delivery is set up. Send them this link yourself. It works once and expires in 7 days.</div>
+ </div>
+
+ <div class="card">
+  <div class="lbl">Audit trail</div>
+  <div class="note" style="margin-top:0">Every check run on the site, with its tamper-evident record. Admin only.</div>
+  <a class="btn btn-soft" href="/audit" style="margin-top:12px">Open the audit trail</a>
+ </div>
 
  <div class="card">
   <div class="lbl">Create a test case</div>
@@ -259,6 +273,19 @@ async function loadVisits(){
   +'<div class="note">Filtered out as automated (bots, link previews, scanners; not in the numbers above): '
   +r.automated.views+' views from '+r.automated.visitors+' sources.</div>';
 }
+$("i-go").onclick=async()=>{
+ const email=$("i-email").value.trim();
+ $("i-err").textContent=""; $("i-out").textContent="";
+ if(!email){$("i-err").textContent="Enter their email address.";return;}
+ $("i-go").disabled=true;
+ try{
+  const r=await(await fetch("/api/auth/request-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})})).json();
+  if(!r.ok){$("i-err").textContent=r.error||"Couldn't create the invite.";return;}
+  $("i-out").innerHTML='Invite for '+esc(email)+': <a href="'+esc(r.link)+'">'+esc(r.link)+'</a> <button class="g" id="i-copy" style="padding:4px 10px;margin-left:6px">Copy</button>';
+  $("i-copy").onclick=async()=>{try{await navigator.clipboard.writeText(r.link);$("i-copy").textContent="Copied";}catch{}};
+ }catch(e){$("i-err").textContent=String(e);}
+ finally{$("i-go").disabled=false;}
+};
 function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadCredits(); loadVisits(); }
 function showGate(){ $("gate").style.display=""; $("dash").style.display="none"; }
 
