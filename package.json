@@ -1,7 +1,7 @@
 {
   "name": "x402",
   "version": "1.0.0",
-  "description": "",
+  "description": "Pay-per-check compliance screening over x402: sanctions, crypto wallets, emails and IPs.",
   "main": "payment-agent.js",
   "scripts": {
     "start": "node payment-agent.js",
@@ -14,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "bugs": {
     "url": "https://github.com/TonytheTiger22/x402/issues"
