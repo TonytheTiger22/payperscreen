@@ -295,6 +295,19 @@ app.get("/api/admin/visits", (req, res) => {
   res.json({ ok: true, ...analytics.summary(Math.min(+req.query.days || 30, 365)) });
 });
 
+app.get("/api/admin/credits", (req, res) => {
+  if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
+  const u = credits.toUsd;
+  const wallets = credits.adminWallets().map((w) => ({ ...w,
+    balance: u(w.balance), topups: u(w.topups), spent: u(w.spent), refunds: u(w.refunds) }));
+  const totals = wallets.reduce((t, w) => ({
+    wallets: t.wallets + 1, topups: t.topups + w.topups, spent: t.spent + w.spent - w.refunds,
+    outstanding: t.outstanding + w.balance, checks: t.checks + w.checks,
+  }), { wallets: 0, topups: 0, spent: 0, outstanding: 0, checks: 0 });
+  const activity = credits.adminActivity(100).map((a) => ({ ...a, delta: u(a.delta) }));
+  res.json({ ok: true, totals, wallets, activity, topupsEnabled: BALANCES_PERSISTENT });
+});
+
 app.get("/api/admin/cases", (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
   const emailById = Object.fromEntries(accounts.listAccounts().map((a) => [a.id, a.email]));

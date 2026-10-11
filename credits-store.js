@@ -136,3 +136,21 @@ export function addressForSession(token) {
 export function destroySession(token) {
   if (token) db.prepare("DELETE FROM credit_sessions WHERE token = ?").run(token);
 }
+
+// --- Operator view (admin only) ---
+
+// One row per wallet: current balance, lifetime top-ups/spend/refunds, last activity.
+export const adminWallets = () => db.prepare(`
+  SELECT address,
+         SUM(delta)                                          AS balance,
+         SUM(CASE WHEN kind = 'topup'  THEN delta ELSE 0 END) AS topups,
+         -SUM(CASE WHEN kind = 'charge' THEN delta ELSE 0 END) AS spent,
+         SUM(CASE WHEN kind = 'refund' THEN delta ELSE 0 END) AS refunds,
+         SUM(CASE WHEN kind = 'charge' THEN 1 ELSE 0 END)     AS checks,
+         MIN(created_at) AS first_seen, MAX(created_at) AS last_seen
+  FROM credit_ledger GROUP BY address ORDER BY last_seen DESC`).all();
+
+// Most recent ledger entries across all wallets.
+export const adminActivity = (n = 100) => db.prepare(`
+  SELECT id, address, delta, kind, label, tx, created_at
+  FROM credit_ledger ORDER BY id DESC LIMIT ?`).all(n);
