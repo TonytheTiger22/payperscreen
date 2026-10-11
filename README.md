@@ -4,6 +4,7 @@ Pay-per-check compliance screening over [x402](https://x402.org). Sanctions name
 
 - **Hosted version:** [payperscreen.com](https://payperscreen.com) (try it by hand at [/try](https://payperscreen.com/try))
 - **API:** `https://api.payperscreen.com` ([docs](https://payperscreen.com/docs), [OpenAPI](https://api.payperscreen.com/openapi.json))
+- **Source:** [github.com/TonytheTiger22/payperscreen](https://github.com/TonytheTiger22/payperscreen) (MIT)
 - **How every check works, and what it doesn't cover:** [methodology](https://payperscreen.com/methodology)
 
 This repo is the whole thing: the paid API, the website, the case queue and the list ingest. Use the hosted version, or run your own.
