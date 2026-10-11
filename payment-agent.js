@@ -9,6 +9,7 @@ import * as audit from "./audit-store.js";
 import * as accounts from "./accounts-store.js";
 import * as analytics from "./analytics-store.js";
 import * as credits from "./credits-store.js";
+import { scheduleRetention } from "./retention.js";
 import { createPublicClient, http, verifyMessage } from "viem";
 import { base } from "viem/chains";
 
@@ -687,4 +688,5 @@ app.post("/api/dispose", (req, res) => {
   res.json({ ok: true, record: audit.dispose(reference, disposition, by) });
 });
 
+scheduleRetention();
 app.listen(4030, () => console.log("Payment agent on http://localhost:4030"));
