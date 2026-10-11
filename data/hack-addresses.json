@@ -1,0 +1,446 @@
+{
+ "name": "Known hack and exploit proceeds",
+ "updated": "2026-10-11",
+ "note": "Curated from public primary sources: official law-enforcement notices and the victims' or security firms' own incident write-ups. Every address links to where it was published. A match means the address was publicly identified as attacker-controlled or as holding stolen funds; it is not a sanctions designation.",
+ "incidents": [
+  {
+   "id": "bybit-2025",
+   "name": "Bybit",
+   "date": "2025-02-21",
+   "lossUsd": 1500000000,
+   "attribution": "North Korea (TraderTraitor / Lazarus), per the FBI",
+   "sources": [
+    "https://www.ic3.gov/psa/2025/psa250226"
+   ],
+   "addresses": [
+    {
+     "address": "0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x96244D83DC15d36847C35209bBDc5bdDE9bEc3D8",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x83c7678492D623fb98834F0fbcb2E7b7f5Af8950",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x83Ef5E80faD88288F770152875Ab0bb16641a09E",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xAF620E6d32B1c67f3396EF5d2F7d7642Dc2e6CE9",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x3A21F4E6Bbe527D347ca7c157F4233c935779847",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xfa3FcCCB897079fD83bfBA690E7D47Eb402d6c49",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xFc926659Dd8808f6e3e0a8d61B20B871F3Fa6465",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xb172F7e99452446f18FF49A71bfEeCf0873003b4",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x6d46bd3AfF100f23C194e5312f93507978a6DC91",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xf0a16603289eAF35F64077Ba3681af41194a1c09",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x23Db729908137cb60852f2936D2b5c6De0e1c887",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x40e98FeEEbaD7Ddb0F0534Ccaa617427eA10187e",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x140c9Ab92347734641b1A7c124ffDeE58c20C3E3",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x684d4b58Dc32af786BF6D572A792fF7A883428B9",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xBC3e5e8C10897a81b63933348f53f2e052F89a7E",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x5Af75eAB6BEC227657fA3E749a8BFd55f02e4b1D",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xBCA02B395747D62626a65016F2e64A20bd254A39",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x4C198B3B5F3a4b1Aa706daC73D826c2B795ccd67",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xCd7eC020121Ead6f99855cbB972dF502dB5bC63a",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xbdE2Cc5375fa9E0383309A2cA31213f2D6cabcbd",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xD3C611AeD139107DEC2294032da3913BC26507fb",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xB72334cB9D0b614D30C4c60e2bd12fF5Ed03c305",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x8c7235e1A6EeF91b980D0FcA083347FBb7EE1806",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x1bb0970508316DC735329752a4581E0a4bAbc6B4",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x1eB27f136BFe7947f80d6ceE3Cf0bfDf92b45e57",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xCd1a4A457cA8b0931c3BF81Df3CFa227ADBdb6E9",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x09278b36863bE4cCd3d0c22d643E8062D7a11377",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x660BfcEa3A5FAF823e8f8bF57dd558db034dea1d",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xE9bc552fdFa54b30296d95F147e3e0280FF7f7e6",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x30a822CDD2782D2B2A12a08526452e885978FA1D",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xB4a862A81aBB2f952FcA4C6f5510962e18c7f1A2",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x0e8C1E2881F35Ef20343264862A242FB749d6b35",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x9271EDdda0F0f2bB7b1A0c712bdF8dbD0A38d1Ab",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xe69753Ddfbedbd249E703EB374452E78dae1ae49",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x2290937A4498C96eFfb87b8371a33D108F8D433f",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x959c4CA19c4532C97A657D82d97acCBAb70e6fb4",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x52207Ec7B1b43AA5DB116931a904371ae2C1619e",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x9eF42873Ae015AA3da0c4354AeF94a18D2B3407b",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x1542368a03ad1f03d96D51B414f4738961Cf4443",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x21032176B43d9f7E9410fB37290a78f4fEd6044C",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xA4B2Fd68593B6F34E51cB9eDB66E71c1B4Ab449e",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x55CCa2f5eB07907696afe4b9Db5102bcE5feB734",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xA5A023E052243b7cce34Cbd4ba20180e8Dea6Ad6",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xdD90071D52F20e85c89802e5Dc1eC0A7B6475f92",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x1512fcb09463A61862B73ec09B9b354aF1790268",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xF302572594a68aA8F951faE64ED3aE7DA41c72Be",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0x723a7084028421994d4a7829108D63aB44658315",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xf03AfB1c6A11A7E370920ad42e6eE735dBedF0b1",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xEB0bAA3A556586192590CAD296b1e48dF62a8549",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    },
+    {
+     "address": "0xD5b58Cf7813c1eDC412367b97876bD400ea5c489",
+     "chain": "ethereum",
+     "role": "holds or held stolen funds (FBI)"
+    }
+   ]
+  },
+  {
+   "id": "kelp-2026",
+   "name": "Kelp DAO (rsETH)",
+   "date": "2026-04-18",
+   "lossUsd": 292000000,
+   "attribution": "North Korea (Lazarus / TraderTraitor), per LayerZero",
+   "sources": [
+    "https://www.quillaudits.com/blog/hack-analysis/kelp-dao-hack",
+    "https://layerzero.network/blog/kelpdao-incident-statement"
+   ],
+   "addresses": [
+    {
+     "address": "0x8b1b6c9a6db1304000412dd21ae6a70a82d60d3b",
+     "chain": "ethereum",
+     "role": "attacker EOA (rsETH receiver)"
+    },
+    {
+     "address": "0x8d11aeac74267dd5c56d371bf4ae1afa174c2d49",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0x5d3919F12bCc35c26Eee5F8226A9bee90c257Ccc",
+     "chain": "ethereum",
+     "role": "attacker EOA (holds stolen assets)"
+    },
+    {
+     "address": "0xcbb24a6b4dafaaa1a759a2f413ea0eb6ae1455cc",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0xeba786c9517a4823a5cfd9c72e4e80bf8168129b",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0xbb6a6006eb71205e977eceb19fcad1c8d631c787",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0x1f4c1c2e610f089d6914c4448e6f21cb0db3adef",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0x4966260619701a80637cDbdAc6A6cE0131f8575E",
+     "chain": "ethereum",
+     "role": "attacker EOA (attack transaction executor)"
+    }
+   ]
+  },
+  {
+   "id": "drift-2026",
+   "name": "Drift Protocol",
+   "date": "2026-04-01",
+   "lossUsd": 285000000,
+   "attribution": "Suspected North Korea (UNC4736), per Drift / SEAL 911 and Elliptic",
+   "sources": [
+    "https://www.chainalysis.com/blog/lessons-from-the-drift-hack/"
+   ],
+   "addresses": [
+    {
+     "address": "H7PiGqqUaanBovwKgEtreJbKmQe6dbq6VTrw6guy7ZgL",
+     "chain": "solana",
+     "role": "attacker address that received the admin key"
+    }
+   ]
+  },
+  {
+   "id": "step-2026",
+   "name": "Step Finance",
+   "date": "2026-01-31",
+   "lossUsd": 27000000,
+   "attribution": "Not attributed",
+   "sources": [
+    "https://rekt.news/step-finance-rekt"
+   ],
+   "addresses": [
+    {
+     "address": "LEP1uHXcWbFEPwQgkeFzdhW2ykgZY6e9Dz8Yro6SdNu",
+     "chain": "solana",
+     "role": "attacker wallet (received stake authority)"
+    },
+    {
+     "address": "7raxiejD8hDUH1wyYWFDPrEuHiLUjJ4RiZi2z1u2udNh",
+     "chain": "solana",
+     "role": "attacker wallet (holds most stolen funds)"
+    }
+   ]
+  },
+  {
+   "id": "truebit-2026",
+   "name": "Truebit",
+   "date": "2026-01-08",
+   "lossUsd": 26400000,
+   "attribution": "Not attributed",
+   "sources": [
+    "https://rekt.news/truebit-rekt",
+    "https://slowmist.medium.com/26-44-million-stolen-truebit-protocol-smart-contract-vulnerability-analysis-e44fe7becd8a"
+   ],
+   "addresses": [
+    {
+     "address": "0x6C8EC8f14bE7C01672d31CFa5f2CEfeAB2562b50",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0x1de399967b206e446b4e9aeeb3cb0a0991bf11b8",
+     "chain": "ethereum",
+     "role": "attack contract"
+    },
+    {
+     "address": "0xc0454E545a7A715c6D3627f77bEd376a05182FBc",
+     "chain": "ethereum",
+     "role": "second exploiter"
+    },
+    {
+     "address": "0x273589ca3713e7becf42069f9fb3f0c164ce850a",
+     "chain": "ethereum",
+     "role": "laundering wallet"
+    },
+    {
+     "address": "0x3b58192943ee6f9ae92d54dd1ef378cfd519862a",
+     "chain": "ethereum",
+     "role": "laundering wallet"
+    },
+    {
+     "address": "0x62afdd1bd84f6b152572404be90679ae58eb4862",
+     "chain": "ethereum",
+     "role": "laundering wallet"
+    },
+    {
+     "address": "0xD12f6E0fa7FBF4e3A1c7996E3F0Dd26AB9031a60",
+     "chain": "ethereum",
+     "role": "laundering wallet"
+    },
+    {
+     "address": "0xD841C52B68c5dB133078ABa039bd9EAF19b0b135",
+     "chain": "ethereum",
+     "role": "laundering wallet (to Tornado Cash)"
+    }
+   ]
+  },
+  {
+   "id": "resolv-2026",
+   "name": "Resolv (USR)",
+   "date": "2026-03-22",
+   "lossUsd": 25000000,
+   "attribution": "Not attributed",
+   "sources": [
+    "https://www.quillaudits.com/blog/hack-analysis/resolv-labs-exploit-explained"
+   ],
+   "addresses": [
+    {
+     "address": "0x04a288a7789dd6ade935361a4fb1ec5db513caed",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0x8ED8cF0C1c531C1b20848E78f1CB32fa5B99b81C",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    },
+    {
+     "address": "0xb945ec1be1f42777f3aa7d683562800b4cdd3890",
+     "chain": "ethereum",
+     "role": "attacker EOA"
+    }
+   ]
+  }
+ ]
+}

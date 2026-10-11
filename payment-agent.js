@@ -582,20 +582,24 @@ app.post("/api/screen-address", async (req, res) => {
                                   "Crypto address screening", 0.02, req);
     const b = screen.body;
 
+    const hack = b.hackFunds?.listed ? b.hackFunds.matches : [];
+    const flagged = b.sanctioned || hack.length > 0;
     const rec = audit.record({
       subject: { name: address, dob: null, country: null },
-      listsChecked: [b.source],
+      listsChecked: [b.source, ...(b.hackFunds ? ["Known hack and exploit proceeds"] : [])],
       listVersion: LIST_VERSION,
-      hitCount: b.sanctioned ? 1 : 0,
+      hitCount: (b.sanctioned ? 1 : 0) + (hack.length ? 1 : 0),
       topScore: null,
-      topMatch: b.sanctioned ? b.matches.map((m) => m.asset).join(", ") : null,
+      topMatch: [b.sanctioned ? "OFAC: " + b.matches.map((m) => m.asset).join(", ") : null,
+                 hack.length ? "Hack proceeds: " + [...new Set(hack.map((h) => h.incident))].join(", ") : null]
+                .filter(Boolean).join("; ") || null,
       clientRef: "LANDING-ADDRESS",
       accountId: req.account?.id ?? null,
       pricePaid: 0.02,
       paymentTx: screen.line.tx,
     });
 
-    if (!b.sanctioned) audit.dispose(rec.reference, "no_match_auto", "system");
+    if (!flagged) audit.dispose(rec.reference, "no_match_auto", "system");
 
     res.json({ ok: true, screen: b, record: audit.get(rec.reference), ledger: ledgerFor(req, screen.line) });
 

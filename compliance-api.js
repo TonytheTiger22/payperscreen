@@ -79,7 +79,7 @@ app.use(paymentMiddleware(
         output: { example: { fields: [], meta: {} } },
       }),
     }),
-    "GET /screen-address": priced("$0.02", "Crypto address screening", {
+    "GET /screen-address": priced("$0.02", "Crypto address screening: OFAC sanctions plus known hack proceeds", {
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { address: "0x0000000000000000000000000000000000dEaD" },
@@ -88,7 +88,7 @@ app.use(paymentMiddleware(
           required: ["address"],
         },
         output: {
-          example: { address: "0x...", sanctioned: false, matches: [] },
+          example: { address: "0x...", sanctioned: false, matches: [], hackFunds: { listed: false, matches: [] } },
         },
       }),
     }),
@@ -259,6 +259,24 @@ async function bestMatch(name, sources) {
 const EVM_ASSETS = new Set(["ETH", "USDT", "USDC", "ARB", "BSC", "ETC"]);
 const looksLikeEvm = (address) => address.toLowerCase().startsWith("0x");
 
+// Curated list of addresses publicly identified as attacker-controlled or
+// holding stolen funds in major hacks (data/hack-addresses.json). Separate
+// from sanctions: a hit here is reported as hackFunds, never as sanctioned.
+import { readFileSync as readHackFile } from "fs";
+const HACKS = JSON.parse(readHackFile(new URL("./data/hack-addresses.json", import.meta.url), "utf8"));
+const HACK_INDEX = new Map();
+for (const inc of HACKS.incidents) for (const a of inc.addresses) {
+  const key = looksLikeEvm(a.address) ? a.address.toLowerCase() : a.address;
+  if (!HACK_INDEX.has(key)) HACK_INDEX.set(key, []);
+  HACK_INDEX.get(key).push({ incident: inc.name, date: inc.date, attribution: inc.attribution,
+    role: a.role, chain: a.chain, source: inc.sources[0] });
+}
+const HACK_COUNT = HACK_INDEX.size;
+function lookupHack(rawAddress) {
+  const address = rawAddress.trim();
+  return HACK_INDEX.get(looksLikeEvm(address) ? address.toLowerCase() : address) || [];
+}
+
 async function lookupAddress(rawAddress) {
   const address = rawAddress.trim();
   const normalized = looksLikeEvm(address) ? address.toLowerCase() : address;
@@ -300,6 +318,15 @@ app.get("/lists-meta", async (req, res) => {
     lists: [
       ...nameLists,
       {
+        source: "HACK-PROCEEDS",
+        label: "Known hack and exploit proceeds (curated from FBI notices and incident reports)",
+        kind: "Crypto addresses",
+        matchType: "Exact",
+        records: HACK_COUNT,
+        listVersion: HACKS.updated,
+        refreshedAt: new Date(HACKS.updated + "T00:00:00Z").toISOString(),
+      },
+      {
         source: "OFAC-SDN-CRYPTO",
         label: "OFAC sanctioned digital-currency addresses",
         kind: "Crypto addresses",
@@ -317,6 +344,7 @@ app.get("/screen-address", async (req, res) => {
   if (!address) return res.json({ error: "address is required" });
 
   const matches = await lookupAddress(address);
+  const hacks = lookupHack(address);
 
   res.json({
     address,
@@ -324,6 +352,14 @@ app.get("/screen-address", async (req, res) => {
     sanctioned: matches.length > 0,
     matches: matches.map((m) => ({ asset: m.asset, source: m.source })),
     source: "OFAC SDN digital currency addresses",
+    hackFunds: {
+      listed: hacks.length > 0,
+      matches: hacks,
+      source: `${HACKS.name} (curated, updated ${HACKS.updated})`,
+      note: "Addresses publicly identified, by law enforcement or the victim's own incident report, " +
+            "as attacker-controlled or holding stolen funds. Not a sanctions designation. Covers " +
+            "direct links to these wallets only, not funds already moved on through other wallets or mixers.",
+    },
     note: "Exact address match only. This source has no linked entity " +
           "name, DOB, or program per address. \"Not sanctioned\" reflects " +
           "this list only, not a guarantee the address is clean.",

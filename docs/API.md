@@ -130,8 +130,17 @@ compare (no prior hit for these parameters).
 
 ### `GET /screen-address`: $0.02
 
-Exact-match lookup against OFAC's sanctioned digital-currency address
-list. This is a **different kind of check** from `/screen`: exact
+Exact-match lookup against two lists, reported separately:
+
+1. **OFAC's sanctioned digital-currency addresses** (`sanctioned`, `matches`).
+2. **Known hack and exploit proceeds** (`hackFunds`): a curated list of
+   addresses publicly identified as attacker-controlled or holding stolen
+   funds, taken from law-enforcement notices (e.g. the FBI's Bybit notice)
+   and the victims' or security firms' own incident write-ups. Every match
+   includes the incident, date, attribution and a source link. A hit here
+   is **not** a sanctions designation.
+
+This is a **different kind of check** from `/screen`: exact
 string match, not fuzzy, and the underlying source carries no linked
 entity name, DOB, or program per address (see "What we check" below).
 
@@ -150,9 +159,25 @@ entity name, DOB, or program per address (see "What we check" below).
   "sanctioned": true,
   "matches": [{ "asset": "XBT", "source": "OFAC-SDN-CRYPTO" }],
   "source": "OFAC SDN digital currency addresses",
-  "note": "Exact address match only. This source has no linked entity name, DOB, or program per address. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean."
+  "note": "Exact address match only. This source has no linked entity name, DOB, or program per address. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
+  "hackFunds": {
+    "listed": true,
+    "matches": [{
+      "incident": "Bybit", "date": "2025-02-21",
+      "attribution": "North Korea (TraderTraitor / Lazarus), per the FBI",
+      "role": "holds or held stolen funds (FBI)", "chain": "ethereum",
+      "source": "https://www.ic3.gov/psa/2025/psa250226"
+    }],
+    "source": "Known hack and exploit proceeds (curated, updated 2026-10-11)",
+    "note": "Addresses publicly identified ... Not a sanctions designation. Covers direct links to these wallets only, not funds already moved on through other wallets or mixers."
+  }
 }
 ```
+
+The hack list covers direct links only: it flags the wallets named in
+the sources, not funds that have since moved on through other wallets,
+bridges or mixers. Tracing those needs a commercial blockchain-analytics
+provider.
 
 Supported assets: `XBT` (Bitcoin), `ETH`, `USDT`, `USDC`, `TRX`, `SOL`,
 `LTC`, `BCH`, `ARB`, `BSC`, `ETC`, `DASH`, `XMR`, `ZEC`, `XVG`, `BTG`,
@@ -228,6 +253,10 @@ supported yet. VPN/hosting classification and community abuse reports
   addresses only, sourced via a third-party extraction tool (see
   `ingest-crypto-addresses.mjs` in this repo for provenance). No linked
   identity data. A hit tells you the address is listed, not whose it is.
+- **Known hack proceeds** (part of `/screen-address`): a curated, hand-reviewed
+  list from public primary sources, currently the FBI's Bybit notice and the
+  attacker wallets published for the Kelp DAO, Drift, Truebit, Resolv and
+  Step Finance hacks. Direct matches only; see `/lists` for the current count.
 - All are snapshots, re-downloaded automatically once a day (a failed
   download keeps the previous copy; `/lists` shows each list's real
   last-refreshed date). If
