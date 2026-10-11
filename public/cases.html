@@ -1,43 +1,63 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Case queue — PayPerScreen</title>
+<title>Case queue | PayPerScreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
- :root{--ink:#16191d;--dim:#5f6a75;--line:#e0e4e9;--go:#1a7f4b;--stop:#b3261e;--amber:#a4600a}
+ :root{--ink:#2B1A3F;--dim:#6B5A80;--line:#DCD2EA;--go:#1C7450;--stop:#B42A4A;--amber:#8F5600}
  *{box-sizing:border-box}
- body{margin:0;background:#f5f7f9;color:var(--ink);
-      font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;
+ body{margin:0;background:var(--milk);color:var(--ink);
+      font:15px/1.5 var(--body);
       display:flex;justify-content:center;padding:32px 18px 90px}
  main{width:100%;max-width:1000px}
  .topbar{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:4px}
  h1{font-size:25px;margin:0;letter-spacing:-.02em}
  .who{font-size:14px;color:var(--dim)}
- .who button{font:inherit;background:none;border:0;color:#1858c4;cursor:pointer;padding:0;margin-left:10px}
+ .who button{font:inherit;background:none;border:0;color:var(--link);cursor:pointer;padding:0;margin-left:10px}
  .sub{color:var(--dim);margin:6px 0 22px;font-size:15px}
  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:14px}
- .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin-bottom:10px}
+ .lbl{font-size:14px;font-weight:600;color:var(--dim);margin-bottom:10px}
  button{font:inherit;font-weight:640;border:0;border-radius:9px;padding:9px 15px;cursor:pointer}
  .clear{background:var(--go);color:#fff}
  .esc{background:var(--stop);color:#fff}
- .g{background:#fff;border:2px solid var(--line);color:var(--dim)}
+ .g{background:#fff;border:1px solid var(--line);color:var(--dim)}
  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
  table{width:100%;border-collapse:collapse;font-size:13.5px}
- th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+ th{text-align:left;font-size:13px;
     color:var(--dim);font-weight:600;padding:8px 7px;border-bottom:1px solid var(--line)}
- td{padding:10px 7px;border-bottom:1px solid #eef1f4;vertical-align:top}
- tr:hover td{background:#fafbfc}
+ td{padding:10px 7px;border-bottom:1px solid #F1ECF8;vertical-align:top}
+ tr:hover td{background:#FAF7FE}
  code{font:12.5px ui-monospace,Menlo,monospace}
  .pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
- .ok{background:#e6f4ec;color:var(--go)}
- .warn{background:#fdf3e3;color:var(--amber)}
- .bad{background:#fdeceb;color:var(--stop)}
- .grey{background:#eef1f4;color:var(--dim)}
+ .ok{background:#DAF2E6;color:var(--go)}
+ .warn{background:#FFF2C7;color:var(--amber)}
+ .bad{background:#FFD9E0;color:var(--stop)}
+ .grey{background:#F1ECF8;color:var(--dim)}
  .note{font-size:13px;color:var(--dim);margin-top:10px}
  .empty{padding:30px 10px;text-align:center;color:var(--dim)}
  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;gap:16px}
  .kv span:first-child{color:var(--dim)}
  .kv b{text-align:right;word-break:break-word}
- a{color:#1858c4}
+ a{color:var(--link)}
+
+ h1{font:600 clamp(28px,4vw,36px)/1.15 var(--display);letter-spacing:-.025em}
+ .card{border-radius:18px}
+ button{font-weight:600}
+ .p{background:var(--ink);border-radius:999px}
+ .p:hover{background:#3D2858}
+ .clear,.esc,.g{border-radius:999px}
+ .g:hover{background:var(--wash)}
+ input,select{background:var(--milk);border-radius:12px}
+ input:focus,select:focus{outline:none;border-color:var(--link);background:#fff}
+ code{background:var(--wash);padding:1px 5px;border-radius:5px}
+ a{color:var(--link)}
+ .note{background:none;padding:0;border-radius:0;margin:10px 0 0;font-size:14px;color:var(--dim)}
+ .note:empty{display:none}
+ td .row{flex-wrap:nowrap}
+ td .row button{padding:7px 14px}
 </style></head><body><main>
 
 <div class="topbar">
@@ -79,7 +99,7 @@ function riskPill(r){
 function draw(){
  if(!rows.length){
   $("tbl").innerHTML='<div class="empty">No open alerts. Checks you run while signed in '
-   +'that come back clean are closed automatically — only ones that need a decision '
+   +'that come back clean are closed automatically. Only ones that need a decision '
    +'land here.</div>';
   return;
  }

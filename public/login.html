@@ -1,34 +1,54 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in — PayPerScreen</title>
+<title>Sign in | PayPerScreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
- :root{--ink:#16191d;--dim:#5f6a75;--line:#e0e4e9;--go:#1a7f4b;--stop:#b3261e}
+ :root{--ink:#2B1A3F;--dim:#6B5A80;--line:#DCD2EA;--go:#1C7450;--stop:#B42A4A;--amber:#8F5600}
  *{box-sizing:border-box}
- body{margin:0;background:#f5f7f9;color:var(--ink);
-      font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;
+ body{margin:0;background:var(--milk);color:var(--ink);
+      font:16px/1.55 var(--body);
       display:flex;justify-content:center;padding:48px 18px 90px}
  main{width:100%;max-width:440px}
  h1{font-size:25px;margin:0 0 4px;letter-spacing:-.02em}
  .sub{color:var(--dim);margin:0 0 22px;font-size:15px}
  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:22px;margin-bottom:14px}
- label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.09em;
+ label{display:block;font-size:14px;font-weight:600;
        color:var(--dim);margin-bottom:8px}
- input{font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:9px;
+ input{font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:9px;
        width:100%;margin-bottom:14px}
  button{font:inherit;font-weight:640;border:0;border-radius:9px;padding:12px 20px;
         cursor:pointer;width:100%}
- .p{background:#1a2634;color:#fff}
+ .p{background:var(--ink);color:#fff}
  .p:disabled{opacity:.5;cursor:default}
  .note{font-size:13px;color:var(--dim);margin-top:4px;line-height:1.5}
  .err{color:var(--stop);font-size:14px;margin-top:8px}
- .linkbox{background:#fdf3e3;border:1px solid #f0dcad;border-radius:9px;padding:14px;
+ .linkbox{background:#FFF2C7;border:1px solid #F0DFA0;border-radius:9px;padding:14px;
           margin-top:14px;font-size:14px;word-break:break-all}
- .linkbox a{color:#1858c4;font-weight:600}
+ .linkbox a{color:var(--link);font-weight:600}
  a.back{color:var(--dim);font-size:14px;text-decoration:none}
+
+ h1{font:600 clamp(28px,4vw,36px)/1.15 var(--display);letter-spacing:-.025em}
+ .card{border-radius:18px}
+ button{font-weight:600}
+ .p{background:var(--ink);border-radius:999px}
+ .p:hover{background:#3D2858}
+ .clear,.esc,.g{border-radius:999px}
+ .g:hover{background:var(--wash)}
+ input,select{background:var(--milk);border-radius:12px}
+ input:focus,select:focus{outline:none;border-color:var(--link);background:#fff}
+ code{background:var(--wash);padding:1px 5px;border-radius:5px}
+ a{color:var(--link)}
+ .note{background:none;padding:0;border-radius:0;margin:10px 0 0;font-size:14px;color:var(--dim)}
+ .note:empty{display:none}
+ td .row{flex-wrap:nowrap}
+ td .row button{padding:7px 14px}
 </style></head><body><main>
 <h1>Sign in to your case queue</h1>
-<p class="sub">No password — enter your email and we'll give you a one-time
+<p class="sub">No password: enter your email and we'll give you a one-time
    sign-in link. Each link works once and expires after 15 minutes.</p>
 
 <div class="card">
@@ -53,7 +73,7 @@ $("go").onclick=async()=>{
     headers:{"Content-Type":"application/json"}, body:JSON.stringify({email})});
   const r=await res.json();
   if(!r.ok){$("err").textContent=r.error||"Something went wrong.";return;}
-  $("out").innerHTML='<div class="linkbox"><b>Email delivery isn’t wired up yet</b> — '
+  $("out").innerHTML='<div class="linkbox"><b>Email delivery isn’t wired up yet.</b> '
    +'here’s your link directly: <a href="'+r.link+'">'+r.link+'</a>'
    +'<div class="note" style="margin-top:8px">In production this would land in your inbox instead '
    +'of being shown on screen. The link expires in 15 minutes and works once.</div></div>';
