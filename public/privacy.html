@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy | PayPerScreen</title>
+<meta name="description" content="What PayPerScreen stores when you run a check, who else sees it, how long we keep it, and how to have it deleted.">
+<link rel="canonical" href="https://payperscreen.com/privacy">
+<link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/theme.css">
+<style>
+ .prose h2{font-size:clamp(24px,3vw,30px);margin:44px 0 12px}
+ .prose table{font-size:15.5px}
+ .prose td:first-child{font-weight:600;width:34%}
+ .updated{color:var(--dim);font-size:15px;margin-top:-18px;margin-bottom:28px}
+</style></head><body>
+
+<main class="prose">
+<h1>Privacy</h1>
+<p>PayPerScreen checks names, crypto wallets, email addresses and IP addresses for you. To do
+   that we have to handle the details you send us. This page says plainly what we keep, who
+   else sees it and how to have it removed.</p>
+<p class="updated">Last updated 11 October 2026.</p>
+
+<h2>What we store</h2>
+<table>
+ <tr><td>The checks you run</td><td>What you submitted (a name with optional date of birth and nationality,
+   a wallet address, an email address or an IP address), which lists or signals were checked, the result,
+   the price paid and the payment transaction. Each check gets a reference and a fingerprint (hash) so it
+   can be verified later and can't be quietly changed.</td></tr>
+ <tr><td>Payments</td><td>The wallet address that paid and the transaction on the Base network. Blockchain
+   transactions are public by nature and can't be deleted by anyone, including us.</td></tr>
+ <tr><td>Prepaid balances</td><td>The wallet address that holds the balance and a ledger of top-ups,
+   charges and refunds.</td></tr>
+ <tr><td>Accounts</td><td>If we invite you to a case queue: your email address, the checks linked to
+   your account, and what you decided about each one (cleared or escalated).</td></tr>
+ <tr><td>Site visits</td><td>Which page was viewed, the referring site and a coarse browser and device
+   label. We don't store your IP address: a visitor is counted with a one-way code that changes every day,
+   so we can't follow anyone across days.</td></tr>
+</table>
+
+<h2>Cookies</h2>
+<p>Only the ones needed for sign-in: one when you're signed in to a case queue, one when you're signed in
+   to a prepaid balance with your wallet, and one for our own admin. No advertising or tracking cookies,
+   and no third-party scripts or fonts load on this site.</p>
+
+<h2>Who else sees it</h2>
+<ul>
+ <li><b>Sanctions lists</b> (OFAC, UN, EU, UK) are downloaded to our own database. Names you screen are
+     matched there and not sent to anyone.</li>
+ <li><b>Email and IP checks</b> need outside lookups. The domain or IP address is sent to public
+     services such as DNS, domain registration records (RDAP), certificate logs (crt.sh) and the Spamhaus
+     blocklist, and an email check asks the domain's own mail server whether the mailbox exists. No
+     message is ever sent to the address.</li>
+ <li><b>Payments</b> are settled by Coinbase's x402 payment service on the Base network.</li>
+ <li><b>Hosting</b>: the site and its database run on Railway.</li>
+</ul>
+<p>We don't sell or rent any of this, and we don't use it for advertising.</p>
+
+<h2>How long we keep it</h2>
+<p>Check records are kept so that you, or your auditor, can verify a check later using its reference.
+   You can ask us to delete any record, or everything linked to your account or wallet, at any time,
+   except what's already public on the blockchain.</p>
+
+<h2>Screening other people</h2>
+<p>When you screen someone, you decide why and on what basis, so for that person's data you are
+   responsible for having a reason to check them. We process it only to run the check and keep its
+   record for you.</p>
+
+<h2>Your rights and how to reach us</h2>
+<p>You can ask what we hold about you, ask us to correct it or delete it, or object to how it's used.
+   Email <a id="pmail" href="mailto:hello@albatrossletter.com">hello@albatrossletter.com</a> and we'll
+   reply within 30 days. If you're not happy with our answer, you can complain to your data protection
+   authority. In the Netherlands that's the Autoriteit Persoonsgegevens.</p>
+</main>
+
+<script>
+fetch("/api/site-info").then(r=>r.json()).then(i=>{
+ if(!i.contactEmail) return;
+ const m=document.getElementById("pmail"); m.href="mailto:"+i.contactEmail; m.textContent=i.contactEmail;
+}).catch(()=>{});
+</script>
+<script src="/nav.js"></script>
+</body></html>
