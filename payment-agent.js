@@ -157,11 +157,23 @@ app.use("/examples", express.static("examples"));
 // /.well-known needs an explicit route.
 app.get("/.well-known/agent-card.json", (_, res) =>
   res.sendFile(process.cwd() + "/public/.well-known/agent-card.json", { dotfiles: "allow" }));
-app.get("/", (_, res) => res.sendFile(process.cwd() + "/public/landing.html"));
+app.get("/", (_, res) => res.sendFile(process.cwd() + "/public/home.html"));
+app.get("/try", (_, res) => res.sendFile(process.cwd() + "/public/landing.html"));
 app.get("/audit", (_, res) => res.sendFile(process.cwd() + "/public/audit.html"));
 app.get("/methodology", (_, res) => res.sendFile(process.cwd() + "/public/methodology.html"));
 // Old path kept working in case anything still links to it.
-app.get("/landing", (_, res) => res.sendFile(process.cwd() + "/public/landing.html"));
+app.get("/landing", (_, res) => res.redirect(301, "/try"));
+
+// Free: when the screening lists were last refreshed (for the home page).
+app.get("/api/lists-latest", async (_, res) => {
+  try {
+    const r = await fetch(`${API}/lists-meta`);
+    if (!r.ok) throw new Error(String(r.status));
+    const { lists } = await r.json();
+    const newest = lists.map((l) => l.refreshedAt).filter(Boolean).sort().pop() || null;
+    res.json({ ok: true, refreshedAt: newest, lists: lists.length });
+  } catch { res.json({ ok: false }); }
+});
 
 app.get("/docs", (_, res) => {
   const md = readFileSync(process.cwd() + "/docs/API.md", "utf8");
@@ -223,7 +235,7 @@ app.get("/lists", async (_, res) => {
       .sort((a, b) => new Date(b.refreshedAt) - new Date(a.refreshedAt))[0];
     const latest = newest
       ? `<p class="latest">Most recent list update: ${esc(newest.label)}, ${fmtDateTime(newest.refreshedAt)}
-         <span>· ${ago(newest.refreshedAt)}</span></p>`
+         <span>(${ago(newest.refreshedAt)})</span></p>`
       : "";
     res.send(template.replace("__LATEST__", latest).replace("__LISTS_TABLE__", table).replace("__NOT_YET__", notYet));
   } catch (err) {

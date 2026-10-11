@@ -324,7 +324,7 @@ app.get("/screen-address", async (req, res) => {
     sanctioned: matches.length > 0,
     matches: matches.map((m) => ({ asset: m.asset, source: m.source })),
     source: "OFAC SDN digital currency addresses",
-    note: "Exact address match only — this source has no linked entity " +
+    note: "Exact address match only. This source has no linked entity " +
           "name, DOB, or program per address. \"Not sanctioned\" reflects " +
           "this list only, not a guarantee the address is clean.",
   });

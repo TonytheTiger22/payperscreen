@@ -32,7 +32,7 @@ function clientLabel(ua) {
   return browser || os ? `${browser || "Other"} · ${os || "other OS"}` : "Unknown";
 }
 // Only real pages — not assets, APIs, or machine-readable files.
-const PAGES = new Set(["/", "/landing", "/docs", "/lists", "/methodology", "/login", "/cases", "/audit"]);
+const PAGES = new Set(["/", "/try", "/landing", "/docs", "/lists", "/methodology", "/login", "/cases", "/audit"]);
 
 const insert = db.prepare("INSERT INTO visits (ts, day, path, referrer, visitor, client) VALUES (?,?,?,?,?,?)");
 

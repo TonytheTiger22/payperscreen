@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayPerScreen: automatic sanctions screening, 2¢ a check</title>
+<meta name="description" content="Check names, crypto wallets, emails and IP addresses against official sanctions lists and risk signals. 2 cents a check, no contract, no account. Built so your software, or your AI agent, can run it on every customer and every payment.">
+<link rel="canonical" href="https://payperscreen.com/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PayPerScreen">
+<meta property="og:title" content="PayPerScreen: automatic sanctions screening, 2¢ a check">
+<meta property="og:description" content="Check names, wallets, emails and IPs against OFAC, UN, EU and UK lists. Pay per check, no contract. Made for automation and AI agents.">
+<meta property="og:url" content="https://payperscreen.com/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PayPerScreen: automatic sanctions screening, 2¢ a check">
+<meta name="twitter:description" content="Check names, wallets, emails and IPs against OFAC, UN, EU and UK lists. Pay per check, no contract. Made for automation and AI agents.">
+<link rel="alternate" type="text/markdown" href="/llms.txt" title="llms.txt">
+<link rel="describedby" href="/llms.txt">
+<link rel="alternate" type="application/json" href="/.well-known/agent-card.json" title="Agent card">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "PayPerScreen",
+  "url": "https://payperscreen.com",
+  "description": "Pay-per-call sanctions, crypto-wallet, email and IP risk screening, priced in USDC and paid per request over x402. No account, no API key, no subscription.",
+  "serviceType": "Sanctions, fraud and risk screening API",
+  "provider": { "@type": "Organization", "name": "PayPerScreen" },
+  "areaServed": "Worldwide",
+  "offers": [
+    { "@type": "Offer", "name": "Sanctions name screening", "price": "0.02", "priceCurrency": "USD" },
+    { "@type": "Offer", "name": "Field comparison after a match", "price": "0.05", "priceCurrency": "USD" },
+    { "@type": "Offer", "name": "Crypto wallet address screening", "price": "0.02", "priceCurrency": "USD" },
+    { "@type": "Offer", "name": "Email trust check", "price": "0.02", "priceCurrency": "USD" },
+    { "@type": "Offer", "name": "IP risk check (beta)", "price": "0.01", "priceCurrency": "USD" }
+  ],
+  "termsOfService": "https://payperscreen.com/docs"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<style>
+ /* ---------- hero ---------- */
+ .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:64px 0 56px}
+ .hero h1{max-width:12.5ch;margin-bottom:22px}
+ .hero .lead{margin-bottom:30px;max-width:30em}
+ .ctas{display:flex;gap:14px;flex-wrap:wrap}
+ .hero-foot{margin-top:26px;font-size:15px;color:var(--dim);max-width:34em}
+
+ .poster{position:relative;aspect-ratio:13/14;max-width:520px;width:100%;justify-self:end}
+ .poster svg.art{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+ .poster svg.art .ink{mix-blend-mode:multiply}
+
+ .ticket{position:absolute;left:7%;right:9%;bottom:9%;background:#fff;border:2px solid var(--ink);
+         border-radius:18px;padding:18px 20px 16px;transform:rotate(-2.2deg);
+         box-shadow:7px 7px 0 var(--ink)}
+ .ticket .line{display:grid;grid-template-columns:7.5em 1fr;gap:10px;padding:7px 0;
+               border-bottom:1px dashed var(--rule);font-size:15px;line-height:1.35}
+ .ticket .line:last-of-type{border-bottom:0}
+ .ticket .who{color:var(--dim);font-size:13.5px;padding-top:1px}
+ .ticket .what code{background:none;padding:0;font-size:13.5px;word-break:break-word}
+ .ticket .what b{font-weight:700}
+ .ticket .ask{color:var(--amber)}
+ .ticket .hit{color:var(--berry)}
+ .ticket .stamp{position:absolute;right:-14px;top:-20px;background:var(--butter);border:2px solid var(--ink);
+         border-radius:999px;padding:6px 12px;font:800 15px var(--display);font-variation-settings:"wdth" 80;transform:rotate(6deg)}
+ @media (prefers-reduced-motion:no-preference){
+  .ticket .line{opacity:0;animation:print .45s ease forwards}
+  .ticket .line:nth-of-type(1){animation-delay:.35s}
+  .ticket .line:nth-of-type(2){animation-delay:1.05s}
+  .ticket .line:nth-of-type(3){animation-delay:1.75s}
+  .ticket .line:nth-of-type(4){animation-delay:2.45s}
+  @keyframes print{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+ }
+
+ /* ---------- lists strip ---------- */
+ .strip{background:var(--ink);color:var(--milk);border-radius:22px;padding:20px 26px;display:flex;
+        flex-wrap:wrap;gap:8px 22px;align-items:baseline;font-size:16px}
+ .strip b{font:800 19px var(--display);font-variation-settings:"wdth" 85;color:var(--butter)}
+ .strip a{color:var(--milk)}
+ .strip .fresh{margin-left:auto;color:#D9CCF0;font-size:14.5px}
+
+ section{padding:88px 0 0}
+ .sec-head{max-width:40em;margin-bottom:34px}
+ .sec-head p{font-size:19px;color:var(--dim);margin-top:14px}
+
+ /* ---------- how paying works ---------- */
+ .how{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:2px solid var(--ink);border-radius:26px;overflow:hidden}
+ .how li{list-style:none;padding:24px 22px 26px;border-right:2px solid var(--ink);position:relative}
+ .how li:last-child{border-right:0}
+ .how li:nth-child(1){background:var(--sky)}
+ .how li:nth-child(2){background:var(--butter)}
+ .how li:nth-child(3){background:var(--peach)}
+ .how li:nth-child(4){background:var(--mint)}
+ .how .n{font:800 46px/1 var(--display);font-variation-settings:"wdth" 75;display:block;margin-bottom:14px;opacity:.85}
+ .how h3{margin-bottom:8px}
+ .how p{font-size:15.5px;margin:0}
+ .usdc{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;margin-top:26px;max-width:46em}
+ .usdc .coin{width:54px;height:54px;border-radius:50%;background:var(--lilac);border:2px solid var(--ink);
+             display:grid;place-items:center;font:800 17px var(--display)}
+ .usdc p{margin:0;font-size:16px}
+
+ /* ---------- where it fits ---------- */
+ .flows{display:flex;flex-direction:column;gap:14px}
+ .flow{display:grid;grid-template-columns:1.1fr 1.2fr 1.3fr;gap:0;border-radius:22px;overflow:hidden;border:2px solid var(--ink)}
+ .flow > div{padding:20px 22px}
+ .flow .when{background:var(--c);font:800 22px/1.15 var(--display);font-variation-settings:"wdth" 82;letter-spacing:-.01em}
+ .flow .check,.flow .then{background:#fff;font-size:16px}
+ .flow .check{border-left:2px solid var(--ink)}
+ .flow .then{border-left:2px dashed var(--rule)}
+ .flow .k{display:block;font-size:13.5px;color:var(--dim);margin-bottom:4px}
+ .flow .price-tag{display:block;margin-top:8px;font-size:14px;color:var(--dim)}
+
+ /* ---------- ways to start ---------- */
+ .ways{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+ .ways > *,.flow > *,.hero > *,.prices > *{min-width:0}
+ .way{border:2px solid var(--ink);border-radius:26px;padding:26px 26px 24px;background:#fff}
+ .way.dev{grid-row:span 2;background:var(--wash)}
+ .way h3{font-size:25px;margin-bottom:10px}
+ .way p{font-size:16px}
+ .way .btn{margin-top:6px}
+ .prompt{background:var(--butter);border:2px solid var(--ink);border-radius:14px;padding:12px 14px;font-size:15px;margin:12px 0}
+ .copy{font:700 14px var(--body);background:none;border:0;color:var(--link);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+ .way pre{font-size:13px;margin:14px 0 12px}
+
+ /* ---------- prices ---------- */
+ .prices{display:grid;grid-template-columns:1fr 1fr;gap:28px 48px;align-items:start}
+ .prices table td:last-child,.prices table th:last-child{text-align:right;white-space:nowrap}
+ .prices td b{font:800 20px var(--display);font-variation-settings:"wdth" 85}
+
+ .honest{background:var(--lilac);border-radius:30px;padding:36px 36px 30px;position:relative;overflow:hidden}
+ .honest h2{max-width:14ch;margin-bottom:16px}
+ .honest p{max-width:40em;font-size:17px}
+ .honest .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+
+ @media (max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:40px}
+  .poster{justify-self:center;max-width:460px}
+  .how{grid-template-columns:1fr 1fr}
+  .how li:nth-child(2){border-right:0}
+  .how li:nth-child(1),.how li:nth-child(2){border-bottom:2px solid var(--ink)}
+  .flow{grid-template-columns:1fr}
+  .flow .check{border-left:0;border-top:2px solid var(--ink)}
+  .flow .then{border-left:0;border-top:2px dashed var(--rule)}
+  .ways,.prices{grid-template-columns:1fr}
+  .way.dev{grid-row:auto}
+ }
+ @media (max-width:520px){
+  .how{grid-template-columns:1fr}
+  .how li{border-right:0;border-bottom:2px solid var(--ink)}
+  .how li:last-child{border-bottom:0}
+  .ticket{left:3%;right:3%;bottom:4%;padding:14px 14px 12px}
+  .ticket .line{grid-template-columns:6.2em 1fr;font-size:14px}
+  .strip .fresh{margin-left:0}
+  .honest{padding:28px 22px 24px}
+ }
+</style></head><body>
+
+<main class="wrap">
+
+ <div class="hero">
+  <div>
+   <h1>Know who you're dealing with before the money moves.</h1>
+   <p class="lead">PayPerScreen checks a name, a crypto wallet, an email or an IP address
+      against official sanctions lists and risk signals. Each check costs 2 cents, with no
+      contract and no account, so you can run it on every customer, every payout and every signup.</p>
+   <div class="ctas">
+    <a class="btn btn-ink" href="/try">Try a check</a>
+    <a class="btn btn-soft" href="#fit">See where it fits</a>
+   </div>
+   <p class="hero-foot">Your software, or your AI agent, pays for each check the moment it asks.
+      That's x402, explained in plain words below.</p>
+  </div>
+
+  <div class="poster" aria-label="Example: a system screens a name, pays 2 cents and gets the result">
+   <svg class="art" viewBox="0 0 520 560" aria-hidden="true">
+    <defs>
+     <filter id="riso" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.75" result="speckle"/>
+      <feComposite in="SourceGraphic" in2="speckle" operator="in"/>
+     </filter>
+    </defs>
+    <g filter="url(#riso)">
+    <circle class="ink" cx="300" cy="215" r="188" fill="#CDBBFF"/>
+    <path class="ink" d="M40 560 V330 a150 150 0 0 1 300 0 V560 Z" fill="#FFC8A6"/>
+    <path class="ink" d="M330 390 c60 -40 160 -10 175 70 c12 70 -60 100 -120 100 h-120 c-40 0 -20 -120 65 -170 Z" fill="#B5E6CC"/>
+    <circle class="ink" cx="118" cy="128" r="62" fill="#FFE58F"/>
+    <circle cx="308" cy="223" r="188" fill="none" stroke="#BBD7FF" stroke-width="10" class="ink"/>
+    </g>
+    <path d="M70 80 l22 0 M81 69 l0 22" stroke="#2B1A3F" stroke-width="4" stroke-linecap="round"/>
+    <path d="M462 120 l16 16 M478 120 l-16 16" stroke="#2B1A3F" stroke-width="4" stroke-linecap="round"/>
+   </svg>
+   <div class="ticket">
+    <span class="stamp">2¢</span>
+    <div class="line"><span class="who">Your system</span><span class="what"><code>screen "Viktor Petrov"</code></span></div>
+    <div class="line"><span class="who">PayPerScreen</span><span class="what ask">That's 0.02 USDC, please.</span></div>
+    <div class="line"><span class="who">Your wallet</span><span class="what">Paid. Signed in a second, no fees.</span></div>
+    <div class="line"><span class="who">PayPerScreen</span><span class="what"><b class="hit">Possible match</b> on the OFAC SDN list, score 0.87.</span></div>
+   </div>
+  </div>
+ </div>
+
+ <div class="strip" id="strip">
+  <b>Checked against</b>
+  <span>OFAC SDN (US)</span><span>UN Security Council</span><span>EU sanctions list</span>
+  <span>UK sanctions list</span><span>OFAC sanctioned crypto wallets</span>
+  <span class="fresh" id="fresh"><a href="/lists">Refreshed every day</a></span>
+ </div>
+
+ <section id="x402">
+  <div class="sec-head">
+   <h2>Paying per check, in plain words</h2>
+   <p>Most data services want a contract, a monthly plan and an API key to look after.
+      We use x402, an open payment standard that lets software pay for a web request
+      at the moment it makes it. Think of a vending machine for data.</p>
+  </div>
+  <ol class="how" style="padding:0;margin:0">
+   <li><span class="n">1</span><h3>Your system asks</h3><p>It sends a name, wallet, email or IP address to our address, like any other web request.</p></li>
+   <li><span class="n">2</span><h3>We name the price</h3><p>Instead of the answer, the first reply says what the check costs: 2 cents in USDC.</p></li>
+   <li><span class="n">3</span><h3>Your wallet pays</h3><p>Your system signs a 2 cent payment from its own wallet. No card, no invoice, no gas fee.</p></li>
+   <li><span class="n">4</span><h3>You get the result</h3><p>In a couple of seconds, with a record of which lists were checked and when.</p></li>
+  </ol>
+  <div class="usdc">
+   <div class="coin" aria-hidden="true">$1</div>
+   <p><b>What's USDC?</b> A digital dollar: 1 USDC is worth 1 US dollar. You load a wallet once
+      and your software spends from it, a few cents at a time. Libraries for x402 handle steps
+      2 and 3 automatically, so to your code it's one call.</p>
+  </div>
+ </section>
+
+ <section id="fit">
+  <div class="sec-head">
+   <h2>Where it fits in your process</h2>
+   <p>Screening is cheapest to do automatically, at the moment something happens.
+      These are the usual places to plug it in.</p>
+  </div>
+  <div class="flows">
+   <div class="flow" style="--c:var(--sky)">
+    <div class="when">A new customer signs up</div>
+    <div class="check"><span class="k">We check</span>Their name, plus date of birth and nationality if you have them, against the OFAC, UN, EU and UK lists.<span class="price-tag">2¢ per customer</span></div>
+    <div class="then"><span class="k">Then you</span>Approve clear results automatically and send possible matches to a person to review.</div>
+   </div>
+   <div class="flow" style="--c:var(--peach)">
+    <div class="when">Before you pay a supplier</div>
+    <div class="check"><span class="k">We check</span>The company name and its owners' names against the same sanctions lists.<span class="price-tag">2¢ per name</span></div>
+    <div class="then"><span class="k">Then you</span>Release the payment, or hold it only when a name matches.</div>
+   </div>
+   <div class="flow" style="--c:var(--mint)">
+    <div class="when">A crypto deposit or withdrawal</div>
+    <div class="check"><span class="k">We check</span>The wallet address against OFAC's list of sanctioned crypto addresses.<span class="price-tag">2¢ per address</span></div>
+    <div class="then"><span class="k">Then you</span>Block the transfer if the address is listed, and keep the record for your files.</div>
+   </div>
+   <div class="flow" style="--c:var(--butter)">
+    <div class="when">Someone creates an account</div>
+    <div class="check"><span class="k">We check</span>The email address (disposable, brand new, no working mailbox) and the IP address (blocklisted, Tor).<span class="price-tag">1 to 2¢ per check</span></div>
+    <div class="then"><span class="k">Then you</span>Ask for extra verification only when something looks off.</div>
+   </div>
+   <div class="flow" style="--c:var(--lilac)">
+    <div class="when">Your AI agent is about to act</div>
+    <div class="check"><span class="k">We check</span>Whatever it's dealing with. The agent finds us, pays from its own wallet and reads the answer.<span class="price-tag">Same prices</span></div>
+    <div class="then"><span class="k">Then it</span>Goes ahead, or stops and asks you, before it pays or onboards anyone.</div>
+   </div>
+  </div>
+ </section>
+
+ <section id="start">
+  <div class="sec-head">
+   <h2>Three ways to start</h2>
+   <p>From a few checks by hand to fully automatic. Pick whichever matches how you work today.</p>
+  </div>
+  <div class="ways">
+   <div class="way" style="background:var(--mint)">
+    <h3>Try it by hand</h3>
+    <p>Run checks on this site with your own wallet, or top up a prepaid balance and skip
+       the wallet popup on every check. Good for a handful of checks a week.</p>
+    <a class="btn btn-ink" href="/try">Try a check</a>
+   </div>
+   <div class="way dev">
+    <h3>Ask a developer to plug it in</h3>
+    <p>About ten lines with the open-source x402 library. Your system keeps a wallet with a
+       few dollars of USDC and pays per call.</p>
+<pre><code>import { wrapFetchWithPayment } from "@x402/fetch";
+
+// client = an x402 client holding your wallet
+const pay = wrapFetchWithPayment(fetch, client);
+
+const res = await pay(
+  "https://api.payperscreen.com/screen?name=Jane%20Doe");
+const { hitCount, hits } = await res.json();
+
+if (hitCount &gt; 0) sendToReview(hits);</code></pre>
+    <p class="small">Full working script: <a href="/examples/agent-client.mjs">agent-client.mjs</a>.
+       Every endpoint and response: <a href="/docs">API docs</a>.</p>
+   </div>
+   <div class="way" style="background:var(--peach)">
+    <h3>Hand it to your AI agent</h3>
+    <p>Agents with an x402 wallet can find us and pay on their own. Give yours an instruction like:</p>
+    <div class="prompt" id="prompt">Before onboarding anyone or paying a new wallet, screen them with PayPerScreen. Instructions: https://payperscreen.com/llms.txt</div>
+    <button class="copy" id="copy-prompt" type="button">Copy instruction</button>
+   </div>
+  </div>
+ </section>
+
+ <section id="prices">
+  <div class="prices">
+   <div>
+    <h2>Prices</h2>
+    <p class="muted" style="margin-top:14px;font-size:19px">No minimum, no monthly fee, nothing to cancel.
+       You pay when a check runs, and only then.</p>
+   </div>
+   <table>
+    <thead><tr><th>Check</th><th>Per check</th></tr></thead>
+    <tbody>
+     <tr><td>Name against sanctions lists</td><td><b>2¢</b></td></tr>
+     <tr><td>Crypto wallet address</td><td><b>2¢</b></td></tr>
+     <tr><td>Email address trust</td><td><b>2¢</b></td></tr>
+     <tr><td>IP address risk (beta)</td><td><b>1¢</b></td></tr>
+     <tr><td>Field comparison after a possible match</td><td><b>5¢</b></td></tr>
+    </tbody>
+   </table>
+  </div>
+ </section>
+
+ <section>
+  <div class="honest">
+   <div class="grain"></div>
+   <h2>What a check is, and what it isn't</h2>
+   <p>We give you the facts: which lists were checked, what matched and how closely. We don't
+      make the compliance decision for you, and we're not a replacement for your own policy.
+      Every signal we use is listed in public, and so is the age of every list.</p>
+   <div class="row">
+    <a class="btn btn-ink" href="/methodology">Read the methodology</a>
+    <a class="btn btn-soft" href="/lists">See the lists</a>
+   </div>
+  </div>
+ </section>
+
+</main>
+
+<footer class="site-foot">
+ <div class="wrap">
+  <span class="mark"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><circle cx="9" cy="10" r="8" fill="#CDBBFF" style="mix-blend-mode:multiply"/><circle cx="17" cy="10" r="8" fill="#FFC8A6" style="mix-blend-mode:multiply"/></svg>PayPerScreen</span>
+  <a href="/try">Try a check</a>
+  <a href="/lists">Lists we check</a>
+  <a href="/methodology">Methodology</a>
+  <a href="/docs">API docs</a>
+  <a href="/llms.txt">llms.txt</a>
+ </div>
+</footer>
+
+<script>
+// Live freshness: when the lists were last refreshed.
+fetch("/api/lists-latest").then(r => r.ok ? r.json() : null).then(d => {
+ if (!d || !d.refreshedAt) return;
+ const min = Math.max(0, Math.round((Date.now() - new Date(d.refreshedAt)) / 60000));
+ const ago = min < 60 ? (min <= 1 ? "just now" : min + " minutes ago")
+   : min < 2880 ? Math.round(min / 60) + (Math.round(min / 60) === 1 ? " hour ago" : " hours ago")
+   : Math.round(min / 1440) + " days ago";
+ document.getElementById("fresh").innerHTML = '<a href="/lists">Last refreshed ' + ago + '</a>';
+}).catch(() => {});
+
+document.getElementById("copy-prompt").onclick = async (e) => {
+ const text = document.getElementById("prompt").textContent;
+ try { await navigator.clipboard.writeText(text); e.target.textContent = "Copied"; }
+ catch { e.target.textContent = "Select the text above to copy it"; }
+};
+</script>
+<script src="/nav.js"></script>
+</body></html>

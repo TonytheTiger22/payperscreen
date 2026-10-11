@@ -1,260 +1,139 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PayPerScreen — sanctions and crypto-address screening, 2¢ a check</title>
-<meta name="description" content="Pay-per-call sanctions and crypto-wallet screening API, priced in USDC over x402 — 2¢ a name check, no account, no API key, no subscription. Built for AI agents and backends to call directly.">
-<link rel="canonical" href="https://payperscreen.com/">
+<title>Run a check: PayPerScreen</title>
+<meta name="description" content="Screen a name against OFAC, UN, EU and UK sanctions lists, or check a crypto wallet, email or IP address. Real checks, paid per use in USDC on Base.">
+<link rel="canonical" href="https://payperscreen.com/try">
 <meta name="robots" content="index, follow">
-
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PayPerScreen">
-<meta property="og:title" content="PayPerScreen — sanctions and crypto-address screening, 2¢ a check">
-<meta property="og:description" content="Pay-per-call sanctions and crypto-wallet screening, priced in USDC over x402. No account, no API key — authentication is payment. Built for agents.">
-<meta property="og:url" content="https://payperscreen.com/">
-
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PayPerScreen — sanctions and crypto-address screening, 2¢ a check">
-<meta name="twitter:description" content="Pay-per-call sanctions and crypto-wallet screening, priced in USDC over x402. No account, no API key — authentication is payment. Built for agents.">
-
-<!-- Machine-readable pointers for agents and LLM crawlers -->
+<meta property="og:title" content="Run a check: PayPerScreen">
+<meta property="og:description" content="Screen a name, wallet, email or IP address. 1 to 2 cents a check, paid in USDC on Base.">
+<meta property="og:url" content="https://payperscreen.com/try">
 <link rel="alternate" type="text/markdown" href="/llms.txt" title="llms.txt">
-<link rel="describedby" href="/llms.txt">
 <link rel="alternate" type="application/json" href="/.well-known/agent-card.json" title="Agent card">
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Service",
-  "name": "PayPerScreen",
-  "url": "https://payperscreen.com",
-  "description": "Pay-per-call sanctions, crypto-wallet, email, and IP risk screening API, priced in USDC and authenticated entirely by x402 micropayments — no account, no API key, no subscription.",
-  "serviceType": "Sanctions, fraud, and risk screening API",
-  "provider": { "@type": "Organization", "name": "PayPerScreen" },
-  "areaServed": "Worldwide",
-  "audience": {
-    "@type": "Audience",
-    "audienceType": "AI agents and backend developers integrating compliance screening"
-  },
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "Sanctions name screening",
-      "price": "0.02",
-      "priceCurrency": "USD",
-      "description": "Fuzzy name match against OFAC, UN, EU and UK sanctions lists, paid per call over x402 on Base."
-    },
-    {
-      "@type": "Offer",
-      "name": "Field comparison / context",
-      "price": "0.05",
-      "priceCurrency": "USD",
-      "description": "Field-by-field comparison between a screened subject and the matched sanctions record."
-    },
-    {
-      "@type": "Offer",
-      "name": "Crypto wallet address screening",
-      "price": "0.02",
-      "priceCurrency": "USD",
-      "description": "Exact-match lookup against OFAC's sanctioned digital-currency address list."
-    },
-    {
-      "@type": "Offer",
-      "name": "Email trust check",
-      "price": "0.02",
-      "priceCurrency": "USD",
-      "description": "Deterministic composite of mail-server validity, disposable-domain detection, domain age, mailbox verification, blocklist status, and typo-squat detection."
-    },
-    {
-      "@type": "Offer",
-      "name": "IP risk check (beta)",
-      "price": "0.01",
-      "priceCurrency": "USD",
-      "description": "Known-high-risk-IP check against the Spamhaus ZEN blocklist and the Tor exit-node list."
-    }
-    ],
-  "termsOfService": "https://payperscreen.com/docs"
-}
-</script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
- :root{
-   --paper:#fbfaf7; --ink:#1a1a18; --rule:#d9d6cd; --dim:#6b6a63;
-   --ok:#1e5631; --warn:#a6192e; --partial:#8a5a00; --link:#1f3a5f;
-   --serif:"Source Serif 4",Georgia,serif; --sans:Inter,-apple-system,"Segoe UI",sans-serif;
- }
- *{box-sizing:border-box}
- body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--sans)}
- a{color:var(--link)}
+ .layout{max-width:1120px;margin:0 auto;padding:52px 20px 64px;display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:start}
+ @media (max-width:880px){.layout{grid-template-columns:1fr;gap:32px;padding-top:36px}}
 
- /* ---------- masthead ---------- */
- .masthead{border-bottom:1px solid var(--ink);padding:36px 20px 22px;text-align:center}
- .kicker{font:500 12.5px var(--sans);color:var(--dim);letter-spacing:.02em;margin:0 0 10px}
- .nameplate{font:700 44px/1 var(--serif);margin:0 0 10px;letter-spacing:-.01em}
- .dateline{font:italic 400 16px/1.5 var(--serif);color:var(--dim);max-width:520px;
-           margin:0 auto}
+ .intro h1{font-size:clamp(42px,6vw,64px);margin:0 0 18px;max-width:9ch}
+ .intro .lead{font-size:19px;margin-bottom:24px}
+ .pay-ways{display:flex;flex-direction:column;gap:12px;margin:0 0 26px}
+ .pay-way{border:2px solid var(--ink);border-radius:18px;padding:14px 16px;background:var(--c)}
+ .pay-way b{display:block;font:800 19px var(--display);font-variation-settings:"wdth" 85;margin-bottom:2px}
+ .pay-way span{font-size:15px}
+ .intro .small a{color:var(--ink)}
 
- /* ---------- two-column layout ---------- */
- .layout{max-width:1080px;margin:0 auto;padding:48px 20px 64px;display:grid;
-         grid-template-columns:1fr 400px;gap:0 56px}
- @media (max-width:820px){.layout{grid-template-columns:1fr;gap:40px}}
+ /* ---------- the sheet with the form ---------- */
+ .module{background:#fff;border:2px solid var(--ink);border-radius:28px;padding:26px 28px 30px;box-shadow:9px 9px 0 var(--peach)}
+ @media (max-width:520px){.module{padding:20px 18px 24px;box-shadow:6px 6px 0 var(--peach)}}
 
- .lede{padding-right:0}
- .headline{font:700 40px/1.12 var(--serif);margin:0 0 16px;letter-spacing:-.015em;max-width:13ch}
- .subhead{font:400 17.5px/1.55 var(--sans);color:var(--dim);margin:0 0 30px;max-width:40ch}
+ .modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+ .mode{font:700 15px var(--body);color:var(--dim);padding:8px 15px;cursor:pointer;border:2px solid var(--rule);
+       border-radius:999px;background:#fff}
+ .mode:hover{color:var(--ink);border-color:var(--ink)}
+ .mode.active{color:var(--ink);background:var(--lilac);border-color:var(--ink)}
 
- .stats{display:flex;gap:14px;margin-bottom:30px}
- .stat{border:1px solid var(--rule);padding:12px 20px;display:flex;flex-direction:column;gap:3px}
- .stat-num{font:700 28px var(--serif);line-height:1}
- .stat-label{font:500 12px var(--sans);color:var(--dim)}
-
- .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:30px}
- .btn{display:inline-block;font:600 14.5px var(--sans);padding:14px 24px;text-decoration:none;
-      border-radius:0;border:1px solid var(--ink);transition:background .15s,color .15s}
- .btn-primary{background:var(--ink);color:var(--paper)}
- .btn-primary:hover{background:#000}
- .btn-outline{background:transparent;color:var(--ink)}
- .btn-outline:hover{background:var(--ink);color:var(--paper)}
-
- .fine-print{font:italic 400 14px/1.6 var(--serif);color:var(--dim);max-width:44ch;margin:0;
-             padding-top:22px;border-top:1px solid var(--rule)}
-
- .tiers{display:flex;flex-direction:column;gap:12px;margin-bottom:26px;max-width:44ch}
- .tier{display:flex;flex-direction:column;gap:2px;padding:10px 0 10px 14px;border-left:2px solid var(--rule)}
- .tier b{font:600 13.5px var(--sans)}
- .tier span{font:400 13.5px/1.5 var(--sans);color:var(--dim)}
-
- /* ---------- the module (form) ---------- */
- .module{border-left:1px solid var(--rule);padding-left:56px}
- @media (max-width:820px){.module{border-left:0;border-top:1px solid var(--rule);
-   padding-left:0;padding-top:40px}}
- .module-label{font:600 13px var(--sans);color:var(--dim);margin:0 0 18px}
-
- .modes{display:flex;gap:26px;border-bottom:1px solid var(--rule);margin-bottom:22px}
- .mode{font:600 15px var(--sans);color:var(--dim);padding:0 0 12px;cursor:pointer;
-       border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:0;
-       border-left:0;border-right:0}
- .mode.active{color:var(--ink);border-bottom-color:var(--ink)}
-
- label{display:block;font:500 13px var(--sans);color:var(--dim);margin:16px 0 6px}
+ label{display:block;font:700 14.5px var(--body);color:var(--ink);margin:16px 0 6px}
  label:first-of-type{margin-top:0}
  .req{color:var(--dim);font-weight:400}
- input,select{width:100%;font:400 15px var(--sans);padding:11px 12px;border:1px solid var(--rule);
-              border-radius:0;background:var(--paper);color:var(--ink)}
- input:focus,select:focus{outline:none;border-color:var(--ink)}
+ input,select{width:100%;font:400 16px var(--body);padding:12px 14px;border:2px solid var(--rule);
+              border-radius:12px;background:var(--milk);color:var(--ink)}
+ input:focus,select:focus{outline:none;border-color:var(--link);background:#fff}
  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ @media (max-width:420px){.grid2{grid-template-columns:1fr;gap:0}}
 
- .examples{display:flex;gap:20px;flex-wrap:wrap;margin:16px 0 0;padding-top:16px;
-           border-top:1px solid var(--rule)}
- .ex{font:500 13px var(--sans);color:var(--link);cursor:pointer;background:none;border:0;
-     padding:0;text-decoration:underline;text-underline-offset:3px;
-     text-decoration-color:transparent;transition:text-decoration-color .15s}
- .ex:hover{text-decoration-color:currentColor}
+ .examples{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+ .ex{font:700 14px var(--body);color:var(--ink);cursor:pointer;background:var(--butter);border:0;
+     padding:6px 12px;border-radius:999px}
+ .ex:hover{background:#FFDC66}
 
  button{font:inherit;cursor:pointer}
- .paybar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 18px;font:500 13px var(--sans);color:var(--dim)}
- .pm{font:600 13px var(--sans);padding:6px 12px;border:1px solid var(--rule);background:var(--paper);color:var(--dim);cursor:pointer;border-radius:0}
- .pm.active{border-color:var(--ink);color:var(--ink)}
+ .paybar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:12px 14px;
+         background:var(--wash);border-radius:16px;font:400 14.5px var(--body);color:var(--dim)}
+ .pm{font:700 14px var(--body);padding:6px 12px;border:2px solid var(--rule);background:#fff;color:var(--dim);cursor:pointer;border-radius:999px}
+ .pm.active{border-color:var(--ink);color:var(--ink);background:var(--mint)}
  #wallet-status{font-weight:400}
  #wallet-status button{font:inherit;color:var(--link);background:none;border:0;cursor:pointer;padding:0 0 0 6px;text-decoration:underline}
- .credit{border:1px solid var(--rule);padding:12px 14px;margin:-6px 0 18px;font:400 13.5px/1.5 var(--sans);color:var(--dim)}
- .credit .bal{font:700 17px var(--serif);color:var(--ink)}
+ .credit{border:2px solid var(--ink);border-radius:16px;padding:14px 16px;margin:-6px 0 18px;font:400 14.5px/1.5 var(--body);color:var(--dim);background:var(--mint)}
+ .credit .bal{font:800 22px var(--display);font-variation-settings:"wdth" 85;color:var(--ink)}
  .credit .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
- .credit .amt{font:600 13px var(--sans);padding:6px 11px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;border-radius:0}
- .credit .amt:hover{border-color:var(--ink)}
+ .credit .amt{font:700 14px var(--body);padding:6px 12px;border:2px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;border-radius:999px}
+ .credit .amt:hover{background:var(--butter)}
  .credit .amt:disabled{opacity:.5;cursor:default}
- .credit input{width:90px;padding:6px 8px;font:500 13px var(--sans)}
+ .credit input{width:96px;padding:6px 10px;font:400 14px var(--body);border-radius:999px;background:#fff}
  .credit .lnk{font:inherit;color:var(--link);background:none;border:0;cursor:pointer;padding:0;text-decoration:underline}
- .credit .e{color:var(--warn);font-weight:500}
- .credit .ok{color:var(--ink);font-weight:500}
- .wm-back{position:fixed;inset:0;background:rgba(26,26,24,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
- .wm{background:var(--paper);border:1px solid var(--ink);max-width:380px;width:100%;padding:22px 22px 18px}
- .wm h3{font:700 20px var(--serif);margin:0 0 4px}
- .wm p{font:400 13.5px/1.5 var(--sans);color:var(--dim);margin:0 0 14px}
- .wm .w{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:600 15px var(--sans);padding:11px 12px;margin-top:8px;
-        border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;border-radius:0;text-decoration:none}
- .wm .w:hover{border-color:var(--ink)}
- .wm .w img,.wm .w .ph{width:28px;height:28px;border-radius:6px;flex:none}
- .wm .w .ph{background:var(--rule)}
- .wm .w small{margin-left:auto;font:500 12px var(--sans);color:var(--dim)}
- .wm .sec{font:600 12px var(--sans);color:var(--dim);margin:16px 0 0;letter-spacing:.02em}
- .wm .close{display:block;margin:16px auto 0;font:500 13px var(--sans);color:var(--dim);background:none;border:0;cursor:pointer}
- .wm .e{color:var(--warn);font:500 13px var(--sans);margin-top:10px}
- .go{display:block;width:100%;background:var(--ink);color:var(--paper);border:0;
-     border-radius:0;padding:14px 18px;font:600 15.5px var(--sans);margin-top:22px}
- .go:hover{background:#000}
- .go:disabled{opacity:.5;cursor:default}
- .price{font:italic 400 13.5px var(--serif);color:var(--dim);margin-top:10px}
- .err{color:var(--warn);font:500 14px var(--sans);margin-top:10px}
+ .credit .e{color:var(--berry);font-weight:700}
+ .credit .ok{color:var(--ink);font-weight:700}
+ .credit a{color:var(--ink)}
+
+ .wm-back{position:fixed;inset:0;background:rgba(43,26,63,.4);display:none;align-items:center;justify-content:center;z-index:1100;padding:16px}
+ .wm{background:#fff;border:2px solid var(--ink);border-radius:24px;max-width:400px;width:100%;padding:24px 24px 20px;box-shadow:8px 8px 0 var(--lilac)}
+ .wm h3{font-size:26px;margin:0 0 6px}
+ .wm p{font:400 15px/1.5 var(--body);color:var(--dim);margin:0 0 14px}
+ .wm .w{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:700 16px var(--body);padding:11px 14px;margin-top:8px;
+        border:2px solid var(--rule);background:#fff;color:var(--ink);cursor:pointer;border-radius:14px;text-decoration:none}
+ .wm .w:hover{border-color:var(--ink);background:var(--wash)}
+ .wm .w img,.wm .w .ph{width:28px;height:28px;border-radius:8px;flex:none}
+ .wm .w .ph{background:var(--lilac)}
+ .wm .w small{margin-left:auto;font:400 13px var(--body);color:var(--dim)}
+ .wm .sec{font:700 13.5px var(--body);color:var(--dim);margin:16px 0 0}
+ .wm .close{display:block;margin:16px auto 0;font:700 14px var(--body);color:var(--dim);background:none;border:0;cursor:pointer}
+ .wm .e{color:var(--berry);font:700 14px var(--body);margin-top:10px}
+
+ .go{display:block;width:100%;background:var(--ink);color:var(--milk);border:2px solid var(--ink);
+     border-radius:999px;padding:15px 18px;font:700 17px var(--body);margin-top:22px;box-shadow:4px 4px 0 var(--lilac)}
+ .go:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--lilac)}
+ .go:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
+ .price{font:400 14.5px var(--body);color:var(--dim);margin-top:12px}
+ .err{color:var(--berry);font:700 15px var(--body);margin-top:10px}
 
  /* ---------- result ---------- */
- .result{margin-top:36px}
- .banner{font:700 21px/1.35 var(--serif);padding:2px 0 2px 18px;border-left:4px solid;
-         margin-bottom:6px}
- .banner.ok{border-color:var(--ok)}
- .banner.warn{border-color:var(--warn)}
- .banner.partial{border-color:var(--partial)}
- .banner.bad{border-color:var(--warn);background:rgba(166,25,46,.06);padding-top:8px;padding-bottom:8px}
- .redflag{font:600 14.5px var(--sans);color:var(--warn);margin:4px 0 2px 18px}
- .card{border-top:1px solid var(--rule);padding:16px 0 2px;margin-top:4px}
- .kv{display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px;gap:14px;
-     border-bottom:1px solid var(--rule)}
+ .result{margin-top:30px}
+ .result:empty{display:none}
+ .banner{font:800 24px/1.15 var(--display);font-variation-settings:"wdth" 85;padding:16px 18px;border-radius:18px;
+         border:2px solid var(--ink);margin-bottom:10px}
+ .banner.ok{background:var(--mint)}
+ .banner.warn{background:var(--peach)}
+ .banner.partial{background:var(--butter)}
+ .banner.bad{background:#FFB3C1}
+ .redflag{font:700 15px var(--body);color:var(--berry);margin:4px 0 6px 4px}
+ .card{padding:8px 0 2px;margin-top:6px}
+ .kv{display:flex;justify-content:space-between;padding:9px 0;font-size:15px;gap:14px;border-bottom:1px dashed var(--rule)}
  .kv:last-of-type{border-bottom:0}
  .kv span:first-child{color:var(--dim)}
- .kv b{text-align:right;word-break:break-word;font-weight:600}
- table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px}
- th{text-align:left;font:600 12.5px var(--sans);color:var(--dim);padding:8px 6px;
-    border-bottom:1px solid var(--ink)}
- td{padding:10px 6px;border-bottom:1px solid var(--rule);vertical-align:top;font:400 14px var(--sans)}
- tr.no td{background:rgba(166,25,46,.04)}
- .tag{font:600 13px var(--sans);white-space:nowrap}
- .tag.y{color:var(--ok)} .tag.n{color:var(--warn)}
- .tag.p{color:var(--partial)} .tag.u{color:var(--dim)}
- .fnote{display:block;font:italic 400 12px var(--serif);color:var(--dim);margin-top:2px}
- .meta{font:italic 400 13.5px/1.6 var(--serif);color:var(--dim);margin-top:12px}
- code{font:12.5px ui-monospace,Menlo,monospace;background:#f1efe9;padding:2px 6px}
+ .kv b{text-align:right;word-break:break-word;font-weight:700}
+ table{font-size:14.5px;margin-top:4px}
+ th{font-size:13.5px;padding:8px 6px}
+ td{padding:10px 6px;font-size:14.5px}
+ tr.no td{background:rgba(255,200,166,.35)}
+ .tag{font:700 14px var(--body);white-space:nowrap}
+ .tag.y{color:var(--leaf)} .tag.n{color:var(--berry)}
+ .tag.p{color:var(--amber)} .tag.u{color:var(--dim)}
+ .fnote{display:block;font:400 13px var(--body);color:var(--dim);margin-top:2px}
+ .meta{font:400 14px/1.6 var(--body);color:var(--dim);margin-top:12px}
 
- .colophon{max-width:1080px;margin:0 auto;padding:0 20px 56px;border-top:1px solid var(--rule);
-           padding-top:20px;text-align:center}
- .colophon p{font:italic 400 13.5px var(--serif);color:var(--dim);margin:0}
+ .colophon{max-width:1120px;margin:0 auto;padding:22px 20px 56px}
+ .colophon p{font-size:15px;color:var(--dim);margin:0 0 8px}
+ .colophon .links{display:flex;gap:18px;flex-wrap:wrap}
 </style></head><body>
 
-<header class="masthead">
- <p class="kicker">A data service, not a compliance service</p>
- <h1 class="nameplate">PayPerScreen</h1>
- <p class="dateline">Sanctions and risk screening, priced per check and settled
-    live on Base mainnet. Raw data, or your own case queue
-    for the flags — pick what you need.</p>
-</header>
-
 <main class="layout">
- <div class="lede">
-  <h2 class="headline">Screen anyone against global sanctions lists.</h2>
-  <p class="subhead">Or check a crypto wallet address, an email
-     address, or an IP address for known risk signals. No account, no
-     contract — pay per check and walk away with a timestamped record
-     you can hand to an auditor.</p>
-
-  <div class="stats">
-   <div class="stat"><span class="stat-num">2&cent;</span><span class="stat-label">per check</span></div>
-   <div class="stat"><span class="stat-num">~2s</span><span class="stat-label">to settle</span></div>
+ <div class="intro">
+  <h1>Run a check</h1>
+  <p class="lead">Screen a name against the OFAC, UN, EU and UK sanctions lists, or check a crypto
+     wallet, an email or an IP address. Each check is a real 1 to 2 cent payment in USDC on Base,
+     and every result is saved with a reference you can show an auditor.</p>
+  <div class="pay-ways">
+   <div class="pay-way" style="--c:var(--sky)"><b>Pay from your wallet</b><span>Your wallet asks you to approve each check. Nothing else to set up.</span></div>
+   <div class="pay-way" style="--c:var(--mint)"><b>Use a prepaid balance</b><span>Top up once, from about €1, and checks come off your balance with no popup.</span></div>
   </div>
-
-  <div class="cta-row">
-   <a class="btn btn-primary" href="/docs">Read the API docs</a>
-   <a class="btn btn-outline" href="/methodology">See every check we run</a>
-  </div>
-
-  <div class="tiers">
-   <div class="tier"><b>1. Raw data</b><span>Every check below, straight as JSON — the deterministic signals and nothing else. See exactly what we check at <a href="/methodology">/methodology</a>.</span></div>
-   <div class="tier"><b>2. Do it yourself</b><span>Sign in and flags land in your own case queue to clear or escalate at <a href="/login">/login</a>.</span></div>
-  </div>
-
-  <p class="fine-print">Methodology, QA, and every source we check are
-     public. What you do with a result — clear it, escalate it, hold a
-     payment — is entirely your own process.</p>
+  <p class="small">New to paying per check? <a href="/#x402">Here's how it works</a>.
+     Want it automatic? <a href="/docs">The API docs</a> show how to call the same checks from your own system.</p>
  </div>
 
  <div class="module">
@@ -328,9 +207,8 @@
    </div>
 
    <button class="go" id="go-email">Check this email</button>
-   <div class="price">Costs 2¢. Ten signals &mdash; mail server
-    validity, disposable-domain check, domain age, mailbox
-    verification, blocklist status, and more.</div>
+   <div class="price">Costs 2¢. Ten signals, including mail server validity, disposable
+    domains, domain age, mailbox verification and blocklist status.</div>
    <div id="err-email" class="err"></div>
   </div>
 
@@ -343,9 +221,8 @@
    </div>
 
    <button class="go" id="go-ip">Check this IP</button>
-   <div class="price">Costs 1¢. Beta &mdash; two known-high-risk-IP
-    lists (Spamhaus blocklist, Tor exit nodes), both checked live.
-    IPv4 only for now.</div>
+   <div class="price">Costs 1¢. In beta: checked live against two high-risk IP lists
+    (the Spamhaus blocklist and Tor exit nodes). IPv4 only for now.</div>
    <div id="err-ip" class="err"></div>
   </div>
 
@@ -354,23 +231,15 @@
 </main>
 
 <div class="colophon">
- <p>Every check above is a real, working payment, not a mockup — it just
-    settled on Base mainnet.</p>
- <p style="margin-top:8px"><a href="/lists">See the lists we check</a> ·
-    <a href="/methodology">Full methodology</a> ·
-    <a href="/docs">API docs</a> ·
-    Questions, or need help integrating?
-    <a href="mailto:hello@example.com?subject=Sanctions%20screening%20API">Email us</a>.</p>
- <!-- Case-queue login is deliberately not linked here yet — magic-link
-      delivery isn't wired up to a real email provider, so the link
-      currently just displays on /login instead of landing in an inbox.
-      The page itself still works for direct/admin testing; add this link
-      back once real email delivery is in. -->
+ <p>Every check here is a real payment that settles on Base mainnet, not a mockup.</p>
+ <p class="links"><a href="/lists">Lists we check</a><a href="/methodology">Methodology</a><a href="/docs">API docs</a></p>
+ <!-- Case-queue login is deliberately not linked here yet: magic-link
+      delivery isn't wired up to a real email provider. Add it back once it is. -->
 </div>
 
 <div class="wm-back" id="wm-back"><div class="wm" role="dialog" aria-modal="true" aria-labelledby="wm-title">
  <h3 id="wm-title">Connect a wallet</h3>
- <p>Pay per check in USDC on Base. You sign a gasless payment &mdash; we never see your keys, and you need no ETH.</p>
+ <p>Pay per check in USDC on Base. You sign a payment with no gas fee. We never see your keys, and you need no ETH.</p>
  <div id="wm-list"></div>
  <div class="e" id="wm-err"></div>
  <button class="close" id="wm-close">Cancel</button>
@@ -408,7 +277,7 @@ $("ex-addr-clean").onclick=()=>{ $("address").value="1BvBMSEYstWetqTFn5Au4m4GFg7
 $("ex-addr-hit").onclick=()=>{ $("address").value="123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"; };
 $("ex-email").onclick=()=>{ $("email").value="info@google.com"; };
 // A known Tor exit node or blocklisted IP would make a better "hit"
-// example, but both lists rotate constantly — a hardcoded one would go
+// example, but both lists rotate constantly, so a hardcoded one would go
 // stale. 1.1.1.1 is a stable, real public IP that should come back clean.
 $("ex-ip").onclick=()=>{ $("ip").value="1.1.1.1"; };
 
@@ -435,8 +304,8 @@ function setMode(m){
 }
 async function refreshWalletStatus(){
  const w=window.PPSWallet; if(!w||!w.address){ $("wallet-status").textContent=""; return; }
- let bal=""; try{ bal=" · "+(await w.usdcBalance()).toFixed(2)+" USDC"; }catch{}
- $("wallet-status").innerHTML=esc("Connected "+short(w.address)+bal+" · Base")+'<button id="wm-change">Change</button>';
+ let bal=""; try{ bal=", "+(await w.usdcBalance()).toFixed(2)+" USDC"; }catch{}
+ $("wallet-status").innerHTML=esc("Connected "+short(w.address)+bal+" on Base")+'<button id="wm-change">Change</button>';
  $("wm-change").onclick=()=>{ window.PPSWallet.disconnect(); setMode("none"); openWalletModal(); };
 }
 const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -456,7 +325,7 @@ async function openWalletModal(){
  if(!/metamask/.test(names)) more.push(["MetaMask", isMobile?"https://metamask.app.link/dapp/"+bare:"https://metamask.io/download/", isMobile?"open app":"install"]);
  if(!/coinbase/.test(names)) more.push(["Coinbase Wallet", isMobile?"https://go.cb-w.com/dapp?cb_url="+here:"https://www.coinbase.com/wallet/downloads", isMobile?"open app":"install"]);
  if(more.length){
-  html+='<div class="sec">'+(found.length?"Other wallets":(isMobile?"Open this page in your wallet app":"No wallet found in this browser — get one"))+'</div>'
+  html+='<div class="sec">'+(found.length?"Other wallets":(isMobile?"Open this page in your wallet app":"No wallet found in this browser. Get one:"))+'</div>'
    +more.map(m=>'<a class="w" target="_blank" rel="noopener" href="'+esc(m[1])+'"><span class="ph"></span>'+esc(m[0])+'<small>'+m[2]+'</small></a>').join("");
  }
  $("wm-list").innerHTML=html;
@@ -511,16 +380,16 @@ async function useBalance(){
 function renderCredits(){
  const c=CREDITS, el=$("credit-panel");
  if(!c.signedIn){
-  el.innerHTML='Top up once in USDC on Base (from '+usd(c.limits.min)+', about &euro;1), then each check is deducted from your balance '
-   +'&mdash; no wallet popup per check. Your balance belongs to your wallet address.'
+  el.innerHTML='Top up once in USDC on Base (from '+usd(c.limits.min)+', about &euro;1), then each check comes off your balance '
+   +'with no wallet popup. Your balance belongs to your wallet address.'
    +'<div class="row"><button class="amt" id="cr-signin">Sign in with my wallet</button></div>'
    +(creditMsg?'<div class="row">'+creditMsg+'</div>':'');
   $("cr-signin").onclick=()=>withWallet(signInCredits);
   return;
  }
  const amts=[c.limits.min,5,10,25].filter((v,i,a)=>v>=c.limits.min&&a.indexOf(v)===i);
- el.innerHTML='<span class="bal">'+usd(c.balanceUsd)+'</span> prepaid &middot; wallet '+esc(short(c.address))
-  +' &middot; about '+Math.floor((c.balanceUsd+1e-9)/0.02)+' name checks'
+ el.innerHTML='<span class="bal">'+usd(c.balanceUsd)+'</span> prepaid, enough for about '+Math.floor((c.balanceUsd+1e-9)/0.02)+' name checks.'
+  +' Wallet '+esc(short(c.address))+'.'
   +' <button class="lnk" id="cr-out">Sign out</button>'
   +(c.topupsEnabled
     ?'<div class="row">Top up: '+amts.map(a=>'<button class="amt" data-a="'+a+'">'+usd(a)+'</button>').join("")
@@ -594,7 +463,7 @@ async function post(url, body, needUsd){
  return r;
 }
 
-const ctxLabel=()=>"Get the field comparison &mdash; 5&cent; "+(PAY_MODE==="balance"?"from your balance":"from your wallet");
+const ctxLabel=()=>"Get the field comparison for 5&cent; "+(PAY_MODE==="balance"?"from your balance":"from your wallet");
 const STATUS_TAG={match:['y','agrees'],partial:['p','partial'],differs:['n','differs'],unknown:['u','no data']};
 function comparisonTable(fields){
  const rows=fields.map(f=>{
@@ -617,8 +486,8 @@ function txRow(r, label){
 
 function contextHtml(c){
  return comparisonTable(c.fields)
-  +'<div class="meta">'+esc(c.meta.list)+' '+esc(c.meta.listVersion)+' &middot; '
-  +esc(c.meta.program)+' &middot; matched on: '+esc(c.meta.matchedOn)+'</div>';
+  +'<div class="meta">'+esc(c.meta.list)+' '+esc(c.meta.listVersion)+'. Program: '
+  +esc(c.meta.program)+'. Matched on: '+esc(c.meta.matchedOn)+'.'+'</div>';
 }
 
 $("go").onclick=async()=>{
@@ -644,12 +513,12 @@ $("go").onclick=async()=>{
     +'<div class="kv"><span>Subject</span><b>'+esc(r.screen.subject.name)+'</b></div>'
     +'<div class="kv"><span>Lists checked</span><b>'+esc(r.screen.listsChecked.join(", "))+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>'+cost+' &middot; '+ms+' ms</b></div>'
+    +'<div class="kv"><span>Cost</span><b>'+cost+', '+ms+' ms</b></div>'
     +'<div class="meta">Recorded with a hash of the check facts, so this result cannot be '
     +'backdated or altered after the fact. Try the sanctioned-name example above to see a match.</div>'
     +'</div>';
   } else {
-   $("result").innerHTML='<div class="banner warn">Possible match &mdash; '
+   $("result").innerHTML='<div class="banner warn">Possible match: '
      +esc(r.screen.hits[0].name)+', '+esc(r.screen.hits[0].list)+', score '+r.screen.hits[0].score+'</div>'
     +'<div class="card" id="ctx-slot">'+(r.context?contextHtml(r.context)
       :'<button class="go" id="get-context" style="margin-top:4px">'+ctxLabel()+'</button>'
@@ -657,9 +526,9 @@ $("go").onclick=async()=>{
        +'<div id="ctx-err" class="err"></div>')+'</div>'
     +'<div class="card">'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>'+cost+' &middot; '+ms+' ms</b></div>'
+    +'<div class="kv"><span>Cost</span><b>'+cost+', '+ms+' ms</b></div>'
     +'<div class="meta">This is a match result and a field comparison only. What you do with it '
-    +'&mdash; clear, escalate, hold a payment &mdash; is entirely your own process.</div></div>';
+    +'(clear it, escalate it, hold a payment) is up to your own process.</div></div>';
    const gc=$("get-context");
    if(gc) gc.onclick=async()=>{
     gc.disabled=true; gc.textContent=PAY_MODE==="balance"?"Working…":"Waiting for your wallet…"; $("ctx-err").textContent="";
@@ -699,16 +568,16 @@ $("go-address").onclick=async()=>{
     +'<div class="card">'
     +'<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>2¢ &middot; '+ms+' ms</b></div>'
+    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>'
     +'<div class="meta">'+esc(b.note)+' Try the sanctioned-address example above to see a hit.</div>'
     +'</div>';
   } else {
-   $("result").innerHTML='<div class="banner warn">Match &mdash; on OFAC’s sanctioned '
+   $("result").innerHTML='<div class="banner warn">Listed on OFAC’s sanctioned '
      +'digital-currency address list ('+esc(b.matches.map(m=>m.asset).join(", "))+')</div>'
     +'<div class="card">'
     +'<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>2¢ &middot; '+ms+' ms</b></div>'
+    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>'
     +'<div class="meta">'+esc(b.note)+'</div></div>';
   }
  } catch(e){
@@ -732,7 +601,7 @@ function signalsTable(signals){
 function riskBanner(b, subject){
  const banner=RISK_BANNER[b.riskLevel]||"partial";
  const label=RISK_LABEL[b.riskLevel]||b.riskLevel;
- let html='<div class="banner '+banner+'">'+(b.redFlag?'\u{1F6A9} ':'')+label+' &mdash; '+esc(subject)
+ let html='<div class="banner '+banner+'">'+(b.redFlag?'\u{1F6A9} ':'')+label+': '+esc(subject)
    +' ('+b.flagCount+' flag(s), '+b.unknownCount+' unknown)</div>';
  if(b.redFlag && b.redFlagSignals?.length){
   html+='<div class="redflag">Red flag: '+esc(b.redFlagSignals.join(", "))+'</div>';
@@ -761,7 +630,7 @@ $("go-email").onclick=async()=>{
    +'<div class="meta">'+esc(b.note)+'</div></div>'
    +'<div class="card">'
    +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-   +'<div class="kv"><span>Cost</span><b>2&cent; &middot; '+ms+' ms</b></div></div>';
+   +'<div class="kv"><span>Cost</span><b>2&cent;, '+ms+' ms</b></div></div>';
  } catch(e){
   $("err-email").textContent=(e.message||String(e));
  } finally {
@@ -790,7 +659,7 @@ $("go-ip").onclick=async()=>{
    +'<div class="meta">'+esc(b.note)+'</div></div>'
    +'<div class="card">'
    +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-   +'<div class="kv"><span>Cost</span><b>1&cent; &middot; '+ms+' ms</b></div></div>';
+   +'<div class="kv"><span>Cost</span><b>1&cent;, '+ms+' ms</b></div></div>';
  } catch(e){
   $("err-ip").textContent=(e.message||String(e));
  } finally {
