@@ -1,6 +1,6 @@
 // Parser smoke test on tiny hand-written fixtures (no network, no DB).
 import assert from "node:assert/strict";
-import { parseUN, parseEU, parseUK, parseOFAC, parseOFACCrypto, normalizeAddress } from "./sanctions-lists.js";
+import { parseUN, parseEU, parseUK, parseOFAC, parseOFACCrypto, normalizeAddress, versionOf } from "./sanctions-lists.js";
 
 const un = parseUN(`<CONSOLIDATED_LIST><INDIVIDUALS>
  <INDIVIDUAL><DATAID>1</DATAID><FIRST_NAME>Ali</FIRST_NAME><SECOND_NAME>Hassan</SECOND_NAME><THIRD_NAME>Khan</THIRD_NAME>
@@ -91,3 +91,12 @@ assert.equal(normalizeAddress("0x8576aCC5C05D6Ce88f4e49bf65BdF0C62F91353C"), "0x
 assert.equal(normalizeAddress("DQnHWq5xCHqZrvUELGMoHH1T2HhXbYzXzv"), "DQnHWq5xCHqZrvUELGMoHH1T2HhXbYzXzv");
 assert.deepEqual(parseOFACCrypto("<Sanctions/>"), { version: null, addresses: [] });
 console.log("OFAC crypto parser: ok");
+
+// Publication dates, one per publisher's format.
+assert.equal(versionOf.OFAC("<publshInformation><Publish_Date>10/09/2026</Publish_Date></publshInformation>"), "2026-10-09"); // MM/DD
+assert.equal(versionOf.UN('<CONSOLIDATED_LIST dateGenerated="2026-10-10T21:00:04.233Z">'), "2026-10-10");
+assert.equal(versionOf.EU('<export xmlns="x" generationDate="2026-09-22T20:01:34.799+02:00" globalFileId="1">'), "2026-09-22");
+assert.equal(versionOf.UK("<Designations><DateGenerated>08/10/2026</DateGenerated>"), "2026-10-08");              // DD/MM
+assert.equal(versionOf.UK("<Designations>"), null);
+assert.equal(versionOf.OFAC("<Publish_Date>13/45/2026</Publish_Date>"), null);                                       // nonsense rejected
+console.log("list versions: ok");
