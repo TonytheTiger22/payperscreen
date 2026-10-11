@@ -11,8 +11,8 @@
  *{box-sizing:border-box}
  body{margin:0;background:var(--milk);color:var(--ink);
       font:15px/1.5 var(--body);
-      display:flex;justify-content:center;padding:32px 18px 90px}
- main{width:100%;max-width:1000px}
+      }
+ main{width:100%;max-width:1036px;margin:0 auto;padding:32px 18px 90px}
  h1{font-size:25px;margin:0 0 4px;letter-spacing:-.02em}
  .sub{color:var(--dim);margin:0 0 22px;font-size:15px}
  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:14px}
@@ -139,4 +139,5 @@ async function load(){rows=await(await fetch("/api/audit")).json();draw();}
 $("rf").onclick=load;
 $("ex").onclick=()=>location.href="/api/export";
 load();
-</script></body></html>
+</script><script src="/nav.js"></script>
+</body></html>
