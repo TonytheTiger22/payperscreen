@@ -54,8 +54,9 @@ Base: no ETH for gas, since the facilitator submits the transaction.
 - `GET /screen`, $0.02: fuzzy name match across the loaded sanctions lists (OFAC, UN, EU, UK)
 - `GET /context`, $0.05: field-by-field comparison for a prior hit
 - `GET /screen-address`, $0.02: exact match against OFAC's sanctioned
-  crypto-address list, plus a curated list of known hack proceeds
-  (FBI notices and incident reports), reported separately as `hackFunds`
+  crypto-address list, plus Tether/Circle stablecoin freeze lists
+  (on-chain, as `frozenByIssuer`) and a curated list of known hack
+  proceeds (FBI notices and incident reports, as `hackFunds`)
 - `GET /screen-email`, $0.02: mail-server validity, disposable-domain
   check, domain age, mailbox verification, blocklist status, typo-squat
 - `GET /screen-ip`, $0.01 (beta): Spamhaus ZEN blocklist and Tor

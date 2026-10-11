@@ -6,6 +6,7 @@ import { createCdpFacilitatorClient } from "@coinbase/cdp-sdk/x402";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import { runEmailChecks } from "./checks/email-trust.js";
 import { runIpChecks } from "./checks/ip-trust.js";
+import { lookupFreezes } from "./stablecoin-freezes.js";
 
 // Base mainnet (CAIP-2). Was "eip155:84532" (Base Sepolia testnet).
 const NETWORK = "eip155:8453";
@@ -79,7 +80,7 @@ app.use(paymentMiddleware(
         output: { example: { fields: [], meta: {} } },
       }),
     }),
-    "GET /screen-address": priced("$0.02", "Crypto address screening: OFAC sanctions plus known hack proceeds", {
+    "GET /screen-address": priced("$0.02", "Crypto address screening: OFAC sanctions, stablecoin freezes and known hack proceeds", {
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { address: "0x0000000000000000000000000000000000dEaD" },
@@ -88,7 +89,7 @@ app.use(paymentMiddleware(
           required: ["address"],
         },
         output: {
-          example: { address: "0x...", sanctioned: false, matches: [], hackFunds: { listed: false, matches: [] } },
+          example: { address: "0x...", sanctioned: false, matches: [], frozenByIssuer: { listed: false, matches: [] }, hackFunds: { listed: false, matches: [] } },
         },
       }),
     }),
@@ -292,6 +293,8 @@ async function lookupAddress(rawAddress) {
 // Free, unauthenticated — just counts and refresh timestamps, nothing
 // that needs paying for. Powers the public "/lists" page on the site.
 app.get("/lists-meta", async (req, res) => {
+  const freezeCount = await pool.query("SELECT count(DISTINCT address_normalized)::int AS n FROM stablecoin_freezes")
+    .then((r) => r.rows[0].n).catch(() => 0);
   const [{ rows: counts }, { rows: [addrCount] }, { rows: meta }] = await Promise.all([
     pool.query("SELECT source, count(*)::int AS n FROM entities WHERE source = ANY($1) GROUP BY source", [NAME_SOURCES]),
     pool.query("SELECT count(*)::int AS n FROM sanctioned_addresses WHERE source = 'OFAC-SDN-CRYPTO'"),
@@ -317,6 +320,15 @@ app.get("/lists-meta", async (req, res) => {
   res.json({
     lists: [
       ...nameLists,
+      ...(freezeCount > 0 ? [{
+        source: "STABLECOIN-FREEZE",
+        label: "Stablecoin freezes (Tether USDT and Circle USDC blacklists, on-chain)",
+        kind: "Crypto addresses",
+        matchType: "Exact",
+        records: freezeCount,
+        listVersion: metaBySource["STABLECOIN-FREEZE"]?.list_version ?? null,
+        refreshedAt: metaBySource["STABLECOIN-FREEZE"]?.refreshed_at ?? null,
+      }] : []),
       {
         source: "HACK-PROCEEDS",
         label: "Known hack and exploit proceeds (curated from FBI notices and incident reports)",
@@ -343,7 +355,7 @@ app.get("/screen-address", async (req, res) => {
   const address = (req.query.address || "").trim();
   if (!address) return res.json({ error: "address is required" });
 
-  const matches = await lookupAddress(address);
+  const [matches, freezes] = await Promise.all([lookupAddress(address), lookupFreezes(pool, address)]);
   const hacks = lookupHack(address);
 
   res.json({
@@ -352,6 +364,14 @@ app.get("/screen-address", async (req, res) => {
     sanctioned: matches.length > 0,
     matches: matches.map((m) => ({ asset: m.asset, source: m.source })),
     source: "OFAC SDN digital currency addresses",
+    frozenByIssuer: {
+      listed: freezes.length > 0,
+      matches: freezes.map((f) => ({ token: f.token, issuer: f.issuer, chain: f.chain })),
+      source: "Tether (USDT) and Circle (USDC) blacklists, read from the token contracts on-chain",
+      note: "The stablecoin issuer has frozen this address, usually at law enforcement's request. " +
+            "USDT/USDC sent to it can't be moved. Not a sanctions designation. Covers USDT on Tron and " +
+            "Ethereum, and USDC on Ethereum, Base, Arbitrum and Optimism.",
+    },
     hackFunds: {
       listed: hacks.length > 0,
       matches: hacks,
@@ -485,6 +505,7 @@ app.get("/context", async (req, res) => {
 // has the network access the ingest needs). Off unless AUTO_REFRESH_LISTS=1.
 if (process.env.AUTO_REFRESH_LISTS === "1") {
   const { SOURCES, refreshSource, refreshCryptoAddresses } = await import("./sanctions-lists.js");
+  const { refreshStablecoinFreezes } = await import("./stablecoin-freezes.js");
   const refreshAll = async () => {
     const client = await pool.connect();
     try {
@@ -494,6 +515,8 @@ if (process.env.AUTO_REFRESH_LISTS === "1") {
       }
       try { await refreshCryptoAddresses(client); }
       catch (e) { console.error("Crypto-address refresh failed:", String(e.message || e)); }
+      try { await refreshStablecoinFreezes(client); }
+      catch (e) { console.error("Stablecoin freeze refresh failed:", String(e.message || e)); }
     } finally { client.release(); }
   };
   setTimeout(refreshAll, 60_000);
