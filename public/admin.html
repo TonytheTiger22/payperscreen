@@ -131,6 +131,11 @@
  </div>
 
  <div class="card wide">
+  <div class="lbl">List refreshes</div>
+  <div id="refresh">Loading&hellip;</div>
+  <div class="note">Every list refreshes once a day, starting a minute after each deploy. A list is flagged if its last attempt failed or it hasn't refreshed for over 26 hours.</div>
+ </div>
+ <div class="card wide">
   <div class="lbl">Open alerts, all accounts</div>
   <div id="tbl">Loading&hellip;</div>
  </div>
@@ -256,6 +261,27 @@ async function loadCredits(){
       +(a.kind==="charge"&&a.label?': '+esc(a.label):'')+'</td><td>'+(a.delta>0?'+':'&minus;')+money(Math.abs(a.delta))+'</td><td>'
       +(a.tx?'<a href="https://basescan.org/tx/'+esc(a.tx)+'" target="_blank" rel="noopener">'+esc(a.tx.slice(0,10))+'… &#8599;</a>':'')+'</td></tr>').join('')+'</table>':'');
 }
+const LIST_NAME={OFAC:"OFAC SDN",UN:"UN Consolidated",EU:"EU Consolidated",UK:"UK Sanctions List",
+ "OFAC-SDN-CRYPTO":"OFAC wallet addresses","STABLECOIN-FREEZE":"Stablecoin freezes"};
+async function loadRefresh(){
+ const r=await(await fetch("/api/admin/refresh-status")).json();
+ if(!r.ok){ $("refresh").innerHTML='<div class="err">'+esc(r.error||"Couldn't load.")+'</div>'; return; }
+ const stale=(t)=>!t||Date.now()-new Date(t)>26*3600e3;
+ const pill=(l)=>!l.ok?'<span class="pill bad">failed</span>':stale(l.attemptedAt)?'<span class="pill warn">stale</span>':'<span class="pill ok">ok</span>';
+ const warn=[];
+ if(!r.autoRefresh) warn.push("Daily refresh is off on the API (AUTO_REFRESH_LISTS is not 1).");
+ const partial=(l)=>{const res=l.detail&&l.detail.result; if(!res) return "";
+  const bad=Object.entries(res).filter(([,x])=>x.error||x.done===false);
+  return bad.map(([k,x])=>k+": "+(x.error||"not finished, resumes next run")).join("; ");};
+ $("refresh").innerHTML=(warn.length?'<div class="err">'+warn.map(esc).join("<br>")+'</div>':'')
+  +(r.run&&r.run.running?'<div class="note">A refresh is running now (started '+esc(when(r.run.startedAt))+').</div>':'')
+  +(r.lists.length?'<table><tr><th>List</th><th>Status</th><th>Last attempt</th><th>Records</th><th>Notes</th></tr>'
+   +r.lists.map(l=>'<tr><td>'+esc(LIST_NAME[l.source]||l.source)+'</td><td>'+pill(l)+'</td><td>'+esc(when(l.attemptedAt))
+    +'</td><td>'+(l.records==null?'n/a':l.records)+'</td><td>'+esc(l.error||partial(l)||"")+'</td></tr>').join('')+'</table>'
+   :'<div class="note">No refresh has been recorded yet. The first one starts a minute after the API deploys.</div>')
+  +(r.stablecoinFreezesByChain.length?'<div class="lbl" style="margin-top:16px">Stablecoin freezes by chain</div><table><tr><th>Token</th><th>Chain</th><th>Frozen wallets</th></tr>'
+   +r.stablecoinFreezesByChain.map(f=>'<tr><td>'+esc(f.token)+'</td><td>'+esc(f.chain)+'</td><td>'+f.n+'</td></tr>').join('')+'</table>':'');
+}
 async function loadVisits(){
  const r=await(await fetch("/api/admin/visits?days=30")).json();
  if(!r.ok){ $("visits").textContent=r.error||"Couldn't load."; return; }
@@ -286,7 +312,7 @@ $("i-go").onclick=async()=>{
  }catch(e){$("i-err").textContent=String(e);}
  finally{$("i-go").disabled=false;}
 };
-function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadCredits(); loadVisits(); }
+function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadCredits(); loadVisits(); loadRefresh(); }
 function showGate(){ $("gate").style.display=""; $("dash").style.display="none"; }
 
 fetch("/api/admin/me").then(r=>r.json()).then(r=>{ if(r.isAdmin) showDash(); });

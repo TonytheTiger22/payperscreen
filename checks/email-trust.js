@@ -106,7 +106,7 @@ export async function runEmailChecks(input) {
     label: "Syntax and mail server",
     severity: "critical", // a domain that can't receive mail at all is disqualifying
     status: hasMx ? "pass" : "flag",
-    detail: hasMx ? `Domain accepts mail (${dns.mx[0].exchange})` : "Domain has no MX record — cannot receive mail",
+    detail: hasMx ? `Domain accepts mail (${dns.mx[0].exchange})` : "Domain has no MX record, so it can't receive mail",
   });
 
   // 2. Disposable/temp-mail domain
@@ -154,7 +154,7 @@ export async function runEmailChecks(input) {
     const probe = await smtpProbe(dns.mx[0].exchange, email);
     signals.push({ id: "mailbox_probe", label: "Mailbox verification", severity: "critical", status: probe.status, detail: probe.detail });
   } else {
-    signals.push({ id: "mailbox_probe", label: "Mailbox verification", severity: "critical", status: "unknown", detail: "Skipped — no mail server to probe" });
+    signals.push({ id: "mailbox_probe", label: "Mailbox verification", severity: "critical", status: "unknown", detail: "Skipped: no mail server to probe" });
   }
 
   // 7. DNSBL (Spamhaus) on the mail server's IP
@@ -195,7 +195,7 @@ export async function runEmailChecks(input) {
     label: "Look-alike domain check",
     severity: "critical", // a deliberate look-alike is a strong phishing signal
     status: typoMatch ? "flag" : "pass",
-    detail: typoMatch ? `Domain closely resembles ${typoMatch} — possible typo-squat` : "No resemblance to major free-mail providers detected",
+    detail: typoMatch ? `Domain closely resembles ${typoMatch}, a possible typo-squat` : "No resemblance to major free-mail providers detected",
   });
 
   // 10. Role-account detection
@@ -227,7 +227,7 @@ export async function runEmailChecks(input) {
     unknownCount,
     signalsChecked: signals.length,
     signals,
-    note: "Deterministic checks only — no AI/LLM scoring. The mailbox-" +
+    note: "Deterministic checks only, no AI/LLM scoring. The mailbox-" +
       "verification probe is best-effort: some mail servers block it or " +
       "accept every address, which shows up as 'unknown', not as a clean " +
       "result. A 'low risk' result reflects only the signals listed above.",

@@ -47,7 +47,7 @@ export async function runIpChecks(input) {
   if (isPrivateOrReserved(octets)) {
     return {
       ok: false,
-      error: "That's a private or reserved IP address, not a public one — there's no reputation " +
+      error: "That's a private or reserved IP address, not a public one. There's no reputation " +
         "to check for an address that doesn't appear on the public internet.",
     };
   }
@@ -69,7 +69,7 @@ export async function runIpChecks(input) {
     severity: "critical",
     status: spamhaus.listed ? "flag" : "pass",
     detail: spamhaus.listed
-      ? "Listed on Spamhaus ZEN — known spam source, botnet member, or hijacked netblock"
+      ? "Listed on Spamhaus ZEN: a known spam source, botnet member, or hijacked netblock"
       : "Not listed on Spamhaus ZEN",
   });
 
@@ -84,7 +84,7 @@ export async function runIpChecks(input) {
     detail: tor == null
       ? "Could not fetch the current Tor exit-node list"
       : tor.isExitNode
-      ? "This address is a known Tor exit node — traffic origin is anonymized"
+      ? "This address is a known Tor exit node, so the traffic's origin is hidden"
       : "Not a known Tor exit node",
   });
 
@@ -119,7 +119,7 @@ export async function runIpChecks(input) {
     unknownCount,
     signalsChecked: signals.length,
     signals,
-    note: "Beta — two known-high-risk-IP lists (Spamhaus ZEN, Tor exit nodes), both free and " +
+    note: "Beta: two known-high-risk-IP lists (Spamhaus ZEN, Tor exit nodes), both free and " +
       "keyless. VPN/hosting classification and community abuse reports (AbuseIPDB) aren't live " +
       "yet; they need a paid key. IPv6 isn't supported yet. A 'low risk' result reflects only the " +
       "signals listed above.",

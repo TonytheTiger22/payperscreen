@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS sanctioned_addresses (
   asset TEXT NOT NULL,
   address TEXT NOT NULL,
   address_normalized TEXT NOT NULL,
+  entity_name TEXT,          -- listed party, from OFAC's sdn_advanced.xml
+  entity_uid TEXT,           -- its SDN UID
   added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(source, asset, address_normalized)
 );
