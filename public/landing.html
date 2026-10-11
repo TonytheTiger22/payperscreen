@@ -194,11 +194,12 @@
    <div class="examples">
     <span class="ex" id="ex-addr-clean">Try a clean address</span>
     <span class="ex" id="ex-addr-hit">Try a sanctioned address</span>
+    <span class="ex" id="ex-addr-hack">Try a hacked-funds address</span>
    </div>
 
    <button class="go" id="go-address">Screen this address</button>
    <div class="price">Costs 2¢. Exact match against OFAC's sanctioned
-    digital-currency address list.</div>
+    digital-currency addresses and our list of known hack proceeds.</div>
    <div id="err-address" class="err"></div>
   </div>
 
@@ -279,6 +280,8 @@ $("tab-ip").onclick=()=>showTab("ip");
 
 $("ex-addr-clean").onclick=()=>{ $("address").value="1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"; };
 $("ex-addr-hit").onclick=()=>{ $("address").value="123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"; };
+// Named by the FBI as holding stolen Bybit funds (IC3 PSA 250226).
+$("ex-addr-hack").onclick=()=>{ $("address").value="0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D"; };
 $("ex-email").onclick=()=>{ $("email").value="info@google.com"; };
 // A known Tor exit node or blocklisted IP would make a better "hit"
 // example, but both lists rotate constantly, so a hardcoded one would go
@@ -567,23 +570,26 @@ $("go-address").onclick=async()=>{
   const b=r.screen;
   const ms=r.ledger.lines.slice(-1)[0]?.ms ?? 0;
 
-  if(!b.sanctioned){
-   $("result").innerHTML='<div class="banner ok">Not on OFAC’s sanctioned address list.</div>'
-    +'<div class="card">'
-    +'<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
+  const hk=(b.hackFunds&&b.hackFunds.listed)?b.hackFunds.matches:[];
+  const base='<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>'
-    +'<div class="meta">'+esc(b.note)+' Try the sanctioned-address example above to see a hit.</div>'
-    +'</div>';
-  } else {
-   $("result").innerHTML='<div class="banner warn">Listed on OFAC’s sanctioned '
-     +'digital-currency address list ('+esc(b.matches.map(m=>m.asset).join(", "))+')</div>'
-    +'<div class="card">'
-    +'<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
-    +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>'
-    +'<div class="meta">'+esc(b.note)+'</div></div>';
+    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>';
+  let html='';
+  if(b.sanctioned){
+   html+='<div class="banner warn">Listed on OFAC’s sanctioned digital-currency address list ('+esc(b.matches.map(m=>m.asset).join(", "))+')</div>';
   }
+  if(hk.length){
+   html+='<div class="banner bad">Linked to a known hack: '+esc([...new Set(hk.map(h=>h.incident))].join(", "))+'</div>'
+    +'<div class="card">'+hk.map(h=>'<div class="kv"><span>'+esc(h.incident)+' ('+esc(h.date)+')</span><b>'+esc(h.role)
+      +'<span class="fnote">'+esc(h.attribution)+'. <a href="'+esc(h.source)+'" target="_blank" rel="noopener">Source</a></span></b></div>').join('')+'</div>';
+  }
+  if(!b.sanctioned && !hk.length){
+   html+='<div class="banner ok">Not on OFAC’s sanctioned list or our known-hack list.</div>';
+  }
+  html+='<div class="card">'+base
+    +'<div class="meta">'+esc(b.note)+(b.hackFunds?' '+esc(b.hackFunds.note):'')
+    +(!b.sanctioned&&!hk.length?' Try the sanctioned-address example above to see a hit.':'')+'</div></div>';
+  $("result").innerHTML=html;
  } catch(e){
   $("err-address").textContent=(e.message||String(e));
  } finally {

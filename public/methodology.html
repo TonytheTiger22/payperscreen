@@ -114,6 +114,7 @@
   <tr><th>What we check</th><th></th></tr>
   <tr><td class="sig">List coverage</td><td>OFAC's sanctioned digital-currency address list only. 18 assets: XBT (Bitcoin), ETH, USDT, USDC, TRX, SOL, LTC, BCH, ARB, BSC, ETC, DASH, XMR, ZEC, XVG, BTG, BSV, XRP.</td></tr>
   <tr><td class="sig">Match method</td><td>Exact string match on the address, not fuzzy. EVM-family addresses (0x...) are compared case-insensitively; everything else (Bitcoin, Solana, etc.) is case-sensitive, matching how those address formats actually work.</td></tr>
+  <tr><td class="sig">Known hack proceeds</td><td>A second, separate list: addresses publicly identified as attacker-controlled or holding stolen funds in major hacks. Sources are law-enforcement notices (the FBI's Bybit notice) and the victims' or security firms' own incident write-ups, each entry linked to where it was published. Reported as <code>hackFunds</code>, never as a sanctions hit. Today it covers Bybit, Kelp DAO, Drift, Truebit, Resolv and Step Finance; <a href="/lists">/lists</a> shows the current count.</td></tr>
  </table>
 
  <div class="gap">
@@ -125,6 +126,9 @@
      sanctioned" means not on this one list. It is not a guarantee the
      address is otherwise clean, has no transaction history with sanctioned
      parties, or isn't a mixer/exchange hot wallet.</p>
+  <p style="margin-top:10px">The hack list only flags the wallets named in its sources. Stolen funds
+     usually move on through many more wallets, bridges and mixers within hours, and we don't follow
+     them. It also only grows when a hack is publicly documented, so a recent incident may be missing.</p>
  </div>
 
  <h2 id="email">Email trust check</h2>
