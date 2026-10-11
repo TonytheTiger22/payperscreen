@@ -130,10 +130,15 @@ compare (no prior hit for these parameters).
 
 ### `GET /screen-address`: $0.02
 
-Exact-match lookup against two lists, reported separately:
+Exact-match lookup against three lists, each reported separately:
 
 1. **OFAC's sanctioned digital-currency addresses** (`sanctioned`, `matches`).
-2. **Known hack and exploit proceeds** (`hackFunds`): a curated list of
+2. **Stablecoin freezes** (`frozenByIssuer`): wallets Tether has blacklisted
+   for USDT (Tron, Ethereum) or Circle for USDC (Ethereum, Base, Arbitrum,
+   Optimism), read directly from the token contracts' public on-chain events
+   and refreshed daily. USDT/USDC sent to a frozen wallet can't be moved.
+   Not a sanctions designation.
+3. **Known hack and exploit proceeds** (`hackFunds`): a curated list of
    addresses publicly identified as attacker-controlled or holding stolen
    funds, taken from law-enforcement notices (e.g. the FBI's Bybit notice)
    and the victims' or security firms' own incident write-ups. Every match
@@ -160,6 +165,12 @@ entity name, DOB, or program per address (see "What we check" below).
   "matches": [{ "asset": "XBT", "source": "OFAC-SDN-CRYPTO" }],
   "source": "OFAC SDN digital currency addresses",
   "note": "Exact address match only. This source has no linked entity name, DOB, or program per address. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
+  "frozenByIssuer": {
+    "listed": false,
+    "matches": [],
+    "source": "Tether (USDT) and Circle (USDC) blacklists, read from the token contracts on-chain",
+    "note": "The stablecoin issuer has frozen this address ... Not a sanctions designation."
+  },
   "hackFunds": {
     "listed": true,
     "matches": [{
@@ -253,6 +264,10 @@ supported yet. VPN/hosting classification and community abuse reports
   addresses only, sourced via a third-party extraction tool (see
   `ingest-crypto-addresses.mjs` in this repo for provenance). No linked
   identity data. A hit tells you the address is listed, not whose it is.
+- **Stablecoin freezes** (part of `/screen-address`): the current Tether USDT
+  blacklist on Tron and Ethereum and Circle USDC blacklist on Ethereum, Base,
+  Arbitrum and Optimism, rebuilt from the contracts' own events (freezes and
+  unfreezes) and refreshed daily. USDT0, PYUSD and USDC on Solana aren't covered yet.
 - **Known hack proceeds** (part of `/screen-address`): a curated, hand-reviewed
   list from public primary sources, currently the FBI's Bybit notice and the
   attacker wallets published for the Kelp DAO, Drift, Truebit, Resolv and

@@ -199,7 +199,7 @@
 
    <button class="go" id="go-address">Screen this address</button>
    <div class="price">Costs 2¢. Exact match against OFAC's sanctioned
-    digital-currency addresses and our list of known hack proceeds.</div>
+    digital-currency addresses, Tether and Circle freeze lists, and our list of known hack proceeds.</div>
    <div id="err-address" class="err"></div>
   </div>
 
@@ -571,6 +571,7 @@ $("go-address").onclick=async()=>{
   const ms=r.ledger.lines.slice(-1)[0]?.ms ?? 0;
 
   const hk=(b.hackFunds&&b.hackFunds.listed)?b.hackFunds.matches:[];
+  const fz=(b.frozenByIssuer&&b.frozenByIssuer.listed)?b.frozenByIssuer.matches:[];
   const base='<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
     +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>';
@@ -583,12 +584,16 @@ $("go-address").onclick=async()=>{
     +'<div class="card">'+hk.map(h=>'<div class="kv"><span>'+esc(h.incident)+' ('+esc(h.date)+')</span><b>'+esc(h.role)
       +'<span class="fnote">'+esc(h.attribution)+'. <a href="'+esc(h.source)+'" target="_blank" rel="noopener">Source</a></span></b></div>').join('')+'</div>';
   }
-  if(!b.sanctioned && !hk.length){
-   html+='<div class="banner ok">Not on OFAC’s sanctioned list or our known-hack list.</div>';
+  if(fz.length){
+   html+='<div class="banner bad">Frozen by '+esc([...new Set(fz.map(f=>f.issuer))].join(" and "))+': '
+     +esc(fz.map(f=>f.token+' on '+f.chain.charAt(0).toUpperCase()+f.chain.slice(1)).join(", "))+'</div>';
+  }
+  if(!b.sanctioned && !hk.length && !fz.length){
+   html+='<div class="banner ok">Not sanctioned, not frozen by Tether or Circle, and not on our known-hack list.</div>';
   }
   html+='<div class="card">'+base
-    +'<div class="meta">'+esc(b.note)+(b.hackFunds?' '+esc(b.hackFunds.note):'')
-    +(!b.sanctioned&&!hk.length?' Try the sanctioned-address example above to see a hit.':'')+'</div></div>';
+    +'<div class="meta">'+esc(b.note)+(fz.length?' '+esc(b.frozenByIssuer.note):'')+(hk.length?' '+esc(b.hackFunds.note):'')
+    +(!b.sanctioned&&!hk.length&&!fz.length?' Try the examples above to see a hit.':'')+'</div></div>';
   $("result").innerHTML=html;
  } catch(e){
   $("err-address").textContent=(e.message||String(e));
