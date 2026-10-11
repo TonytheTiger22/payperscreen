@@ -23,7 +23,7 @@ import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const API_BASE = process.env.API_BASE_URL
-  || "https://keen-solace-production-b976.up.railway.app";
+  || "https://api.payperscreen.com";
 
 if (!process.env.PRIVATE_KEY) {
   console.error("Set PRIVATE_KEY to a funded Base-mainnet wallet's private key.");

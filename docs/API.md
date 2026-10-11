@@ -26,12 +26,11 @@ copy-pasteable reference client.
 ## Base URL
 
 ```
-https://keen-solace-production-b976.up.railway.app
+https://api.payperscreen.com
 ```
 
-(Provisional — this is the Railway-assigned hostname for the API service.
-A dedicated subdomain may replace it later; this document will be updated
-if so.)
+The API runs on its own subdomain of payperscreen.com. `GET /` on it is free
+and returns a short index (operator, docs, receiving address, prices).
 
 ## How payment works
 

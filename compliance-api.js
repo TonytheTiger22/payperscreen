@@ -133,6 +133,10 @@ app.use(paymentMiddleware(
     .registerExtension(bazaarResourceServerExtension),
 ));
 
+// Crawlers and agent fetchers check robots.txt first; without one some of
+// them refuse the host outright. The paid routes are still paywalled by x402.
+app.get("/robots.txt", (_, res) => res.type("text/plain").send("User-agent: *\nAllow: /\n"));
+
 // Free index for whoever lands on the bare API host (often an agent that
 // found it in our docs): says who runs it and where the docs are, so the
 // host isn't an anonymous endpoint asking to be paid.
