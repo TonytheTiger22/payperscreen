@@ -1,118 +1,96 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Methodology — every check we run, in full — PayPerScreen</title>
-<meta name="description" content="A complete, honest list of every signal PayPerScreen checks for each service, what each result means, and exactly what we don't check yet — so you can judge for yourself whether it's enough for your use case.">
+<title>Methodology: every check we run, in full | PayPerScreen</title>
+<meta name="description" content="A complete, honest list of every signal PayPerScreen checks for each service, what each result means, and exactly what we don't check yet, so you can judge for yourself whether it's enough for your use case.">
 <link rel="canonical" href="https://payperscreen.com/methodology">
 <meta name="robots" content="index, follow">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
 <style>
- :root{
-   --paper:#fbfaf7; --ink:#1a1a18; --rule:#d9d6cd; --dim:#6b6a63;
-   --ok:#1e5631; --warn:#a6192e; --partial:#8a5a00; --link:#1f3a5f;
-   --serif:"Source Serif 4",Georgia,serif; --sans:Inter,-apple-system,"Segoe UI",sans-serif;
- }
- *{box-sizing:border-box}
- body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--sans)}
- a{color:var(--link)}
 
- .masthead{border-bottom:1px solid var(--ink);padding:36px 20px 22px;text-align:center}
- .kicker{font:500 12.5px var(--sans);color:var(--dim);letter-spacing:.02em;margin:0 0 10px}
- .nameplate{font:700 38px/1 var(--serif);margin:0 0 10px;letter-spacing:-.01em}
- .dateline{font:italic 400 16px/1.5 var(--serif);color:var(--dim);max-width:560px;margin:0 auto}
-
- main{max-width:760px;margin:0 auto;padding:48px 20px 80px}
- h2{font:700 26px var(--serif);margin:48px 0 6px;letter-spacing:-.01em;border-bottom:1px solid var(--ink);padding-bottom:10px}
- h2:first-child{margin-top:0}
- h3{font:600 17px var(--sans);margin:28px 0 4px}
- .svc-meta{font:italic 400 14px var(--serif);color:var(--dim);margin:0 0 18px}
- p{margin:0 0 14px}
- .lede{font:400 18px/1.6 var(--serif);color:var(--ink);margin-bottom:10px}
-
- table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0 20px}
- th{text-align:left;font:600 12px var(--sans);color:var(--dim);padding:8px 10px 8px 0;
-    border-bottom:1px solid var(--ink);white-space:nowrap}
- td{padding:11px 10px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
- td.sig{font:600 14px var(--sans);white-space:nowrap}
- .sev{font:600 11.5px var(--sans);padding:2px 8px;border-radius:20px;white-space:nowrap}
- .sev.critical{background:#fdeceb;color:var(--warn)}
- .sev.minor{background:#fdf3e3;color:var(--partial)}
- .sev.info{background:#eef1f4;color:var(--dim)}
-
- .gap{border-left:3px solid var(--partial);padding:12px 0 12px 16px;margin:14px 0;background:rgba(138,90,0,.05)}
- .gap b{display:block;font:600 14px var(--sans);margin-bottom:3px}
- .gap p{margin:0;font-size:14.5px;color:var(--dim)}
-
- .note{font:italic 400 14.5px/1.6 var(--serif);color:var(--dim);margin:16px 0;
-       padding:14px 18px;border-left:3px solid var(--rule)}
- .callout{border:1px solid var(--ink);padding:18px 20px;margin:20px 0}
- .callout b{display:block;font:600 14px var(--sans);margin-bottom:6px}
- code{font:12.5px ui-monospace,Menlo,monospace;background:#f1efe9;padding:2px 6px}
+ .intro{max-width:760px;margin:0 auto;padding:56px 20px 8px}
+ .intro h1{font-size:clamp(42px,6.5vw,68px);margin:0 0 16px}
+ .intro p{font-size:20px;line-height:1.55;color:var(--dim);max-width:34em}
+ main{max-width:760px;margin:0 auto;padding:24px 20px 80px}
+ main h2{font-size:clamp(28px,3.6vw,38px);margin:60px 0 8px}
+ main h2:first-child{margin-top:12px}
+ main h3{margin:30px 0 6px}
+ .svc-meta{color:var(--dim);margin:0 0 18px;font-size:15.5px}
+ .lede{font-size:19px;line-height:1.55;margin-bottom:12px}
+ table{font-size:15px}
+ th{white-space:nowrap}
+ td.sig{font-weight:700;white-space:nowrap}
+ @media (max-width:640px){td.sig{white-space:normal}}
+ .sev{font:700 13px var(--body);padding:3px 10px;border-radius:999px;white-space:nowrap;color:var(--ink)}
+ .sev.critical{background:#FFB3C1}
+ .sev.minor{background:var(--butter)}
+ .sev.info{background:var(--sky)}
+ .gap{background:var(--peach);border-radius:18px;padding:16px 20px;margin:16px 0;border:2px solid var(--ink)}
+ .gap b{display:block;font:800 19px var(--display);font-variation-settings:"wdth" 85;margin-bottom:4px}
+ .gap p{margin:0;font-size:15.5px}
+ .callout{background:var(--lilac);border-radius:22px;padding:20px 24px;margin:22px 0;border:2px solid var(--ink)}
+ .callout b{display:block;margin-bottom:6px}
  ul{margin:0 0 14px;padding-left:22px}
  li{margin-bottom:6px}
+ .colophon{max-width:760px;margin:0 auto;padding:24px 20px 56px;border-top:2px dashed var(--rule)}
+ .colophon p{color:var(--dim);margin:0 0 10px}
 
- .colophon{max-width:760px;margin:0 auto;padding:24px 20px 56px;border-top:1px solid var(--rule);
-           text-align:center}
- .colophon p{font:italic 400 13.5px var(--serif);color:var(--dim);margin:0}
- .back{display:inline-block;margin-top:10px;font:500 13.5px var(--sans)}
 </style></head><body>
 
-<header class="masthead">
- <p class="kicker">Full disclosure</p>
- <h1 class="nameplate">Methodology</h1>
- <p class="dateline">Exactly what each check does, signal by signal — including what we
-    don't check yet — so you can decide for yourself whether it's enough for
-    what you're using it for.</p>
+<header class="intro">
+ <h1>Methodology</h1>
+ <p>Exactly what each check does, signal by signal, including what we don't check yet,
+    so you can decide for yourself whether it's enough for what you're using it for.</p>
 </header>
 
 <main>
  <p class="lede">We'd rather you know the real boundaries of what's checked than have a
     result imply more confidence than the data supports. This page lists every
     signal behind every service, with nothing summarized away. If a signal
-    isn't listed here, we don't check it — and we say so explicitly where a
+    isn't listed here, we don't check it, and we say so explicitly where a
     gap is a real limitation, not just an omission.</p>
 
  <div class="callout">
   <b>How to read "risk level"</b>
-  The email and IP checks don't use a list match — they run several
+  The email and IP checks don't use a list match. They run several
   independent signals and combine them. Each signal is marked <span class="sev critical">critical</span>
   or <span class="sev minor">minor</span> ahead of time, based on how strong a problem it would mean on
   its own. A single flagged critical signal sets <code>redFlag: true</code>
   and <code>riskLevel: "high"</code> by itself, regardless of how many minor
-  signals also flagged — that's the whole purpose of the distinction. With no
+  signals also flagged. That's the whole purpose of the distinction. With no
   critical flags, risk scales with how many minor signals flagged: 0 is
   <code>low</code>, 1–2 is <code>medium</code>, 3+ is <code>high</code>.
   Every signal that couldn't be evaluated is marked <code>unknown</code>, never
   folded silently into a pass.
 
-  <br><br><b>None of this involves an AI model.</b> Every signal on this page
-  — for every service — is
+  <br><br><b>None of this involves an AI model.</b> Every signal on this page, for every service, is
   plain deterministic code against a real data source. Given the same input
   and the same underlying data, it returns the same result every time.
  </div>
 
  <h2 id="name">Sanctions name screening</h2>
- <p class="svc-meta"><code>GET /screen</code> &middot; $0.02</p>
+ <p class="svc-meta"><code>GET /screen</code>, $0.02 per check</p>
  <p>Fuzzy match against a list of names, not a composite of independent
-    signals — one check, one data source.</p>
+    signals: one check, one data source.</p>
 
  <table>
   <tr><th>What we check</th><th></th></tr>
-  <tr><td class="sig">List coverage</td><td>Sanctions lists loaded in our database: OFAC SDN, UN Security Council Consolidated List, EU Consolidated Financial Sanctions List, UK Sanctions List (FCDO). <b>Only lists that are actually loaded are checked</b> — every response names them in <code>listsChecked</code>, and <a href="/lists">/lists</a> shows the live record count and last refresh date per list.</td></tr>
-  <tr><td class="sig">Match method</td><td>Trigram similarity against both primary names and known aliases — not an exact string match, so minor spelling differences, transliteration, and word-order changes can still surface a match.</td></tr>
-  <tr><td class="sig">What's returned</td><td>The single highest-scoring candidate above an internal similarity threshold <b>from each list</b> — so a name that resembles entries on three lists returns up to three hits, one per list, strongest first. Not every candidate within a list.</td></tr>
+  <tr><td class="sig">List coverage</td><td>Sanctions lists loaded in our database: OFAC SDN, UN Security Council Consolidated List, EU Consolidated Financial Sanctions List, UK Sanctions List (FCDO). <b>Only lists that are actually loaded are checked</b>, every response names them in <code>listsChecked</code>, and <a href="/lists">/lists</a> shows the live record count and last refresh date per list.</td></tr>
+  <tr><td class="sig">Match method</td><td>Trigram similarity against both primary names and known aliases, not an exact string match, so minor spelling differences, transliteration, and word-order changes can still surface a match.</td></tr>
+  <tr><td class="sig">What's returned</td><td>The single highest-scoring candidate above an internal similarity threshold <b>from each list</b>, so a name that resembles entries on three lists returns up to three hits, one per list, strongest first. Not every candidate within a list.</td></tr>
  </table>
 
  <div class="gap">
   <b>What we do NOT check</b>
   <p>Any list not shown in <code>listsChecked</code> or on
      <a href="/lists">/lists</a>. "No match" means no match on the lists
-     named in the response — nothing broader. Other national lists (Canada,
+     named in the response, nothing broader. Other national lists (Canada,
      Australia, Switzerland and others) are not included. We also don't screen for Politically Exposed Persons
-     (PEP) status or adverse media (negative news) — both are separate,
+     (PEP) status or adverse media (negative news). Both are separate,
      unbuilt products, not folded into this result.</p>
  </div>
 
@@ -124,27 +102,27 @@
     count and last-refresh date, not a marketing claim.</div>
 
  <h2 id="address">Crypto wallet address screening</h2>
- <p class="svc-meta"><code>GET /screen-address</code> &middot; $0.02</p>
+ <p class="svc-meta"><code>GET /screen-address</code>, $0.02 per check</p>
 
  <table>
   <tr><th>What we check</th><th></th></tr>
   <tr><td class="sig">List coverage</td><td>OFAC's sanctioned digital-currency address list only. 18 assets: XBT (Bitcoin), ETH, USDT, USDC, TRX, SOL, LTC, BCH, ARB, BSC, ETC, DASH, XMR, ZEC, XVG, BTG, BSV, XRP.</td></tr>
-  <tr><td class="sig">Match method</td><td>Exact string match on the address — not fuzzy. EVM-family addresses (0x...) are compared case-insensitively; everything else (Bitcoin, Solana, etc.) is case-sensitive, matching how those address formats actually work.</td></tr>
+  <tr><td class="sig">Match method</td><td>Exact string match on the address, not fuzzy. EVM-family addresses (0x...) are compared case-insensitively; everything else (Bitcoin, Solana, etc.) is case-sensitive, matching how those address formats actually work.</td></tr>
  </table>
 
  <div class="gap">
   <b>What we do NOT check</b>
   <p>This source has <b>no linked entity name, date of birth, or sanctions
-     program per address</b> — the upstream data simply doesn't carry that
+     program per address</b>, the upstream data simply doesn't carry that
      information. A hit tells you the address is listed and which asset;
      it can't tell you whose address it is or why it's listed. "Not
-     sanctioned" means not on this one list — it is not a guarantee the
+     sanctioned" means not on this one list. It is not a guarantee the
      address is otherwise clean, has no transaction history with sanctioned
      parties, or isn't a mixer/exchange hot wallet.</p>
  </div>
 
  <h2 id="email">Email trust check</h2>
- <p class="svc-meta"><code>GET /screen-email</code> &middot; $0.02</p>
+ <p class="svc-meta"><code>GET /screen-email</code>, $0.02 per check</p>
  <p>A "fan-out and score" composite: 10 independent signals run in parallel,
     each judged pass/flag/unknown, then combined into one risk level. All of them are free and zero-key.</p>
 
@@ -154,11 +132,11 @@
   <tr><td class="sig">Disposable email provider</td><td><span class="sev critical">critical</span></td><td>Checked against a maintained open-source list of known disposable/temp-mail domains (10minutemail, etc.).</td></tr>
   <tr><td class="sig">Provider type</td><td><span class="sev info">informational</span></td><td>Consumer free-mail (Gmail, Yahoo, etc.) vs. a custom/corporate domain. Never flags either way on its own.</td></tr>
   <tr><td class="sig">Domain registration age</td><td><span class="sev minor">minor</span></td><td>How long ago the domain was registered, via RDAP. Flagged if under 30 days old.</td></tr>
-  <tr><td class="sig">Domain certificate history</td><td><span class="sev minor">minor</span></td><td>Public log of every SSL certificate ever issued for the domain, via crt.sh — an independent age signal.</td></tr>
-  <tr><td class="sig">Mailbox verification</td><td><span class="sev critical">critical</span></td><td><b>Best-effort.</b> We connect to the domain's mail server and ask if the specific mailbox would accept mail (no message sent). Many mail servers block this or accept every address regardless (a "catch-all") — both cases come back <code>unknown</code>, never a false "verified."</td></tr>
-  <tr><td class="sig">Mail server reputation (DNSBL)</td><td><span class="sev critical">critical</span></td><td>The mail server's IP checked against the Spamhaus ZEN blocklist — the same blocklist the IP risk check uses.</td></tr>
+  <tr><td class="sig">Domain certificate history</td><td><span class="sev minor">minor</span></td><td>Public log of every SSL certificate ever issued for the domain, via crt.sh, an independent age signal.</td></tr>
+  <tr><td class="sig">Mailbox verification</td><td><span class="sev critical">critical</span></td><td><b>Best-effort.</b> We connect to the domain's mail server and ask if the specific mailbox would accept mail (no message sent). Many mail servers block this or accept every address regardless (a "catch-all"), both cases come back <code>unknown</code>, never a false "verified."</td></tr>
+  <tr><td class="sig">Mail server reputation (DNSBL)</td><td><span class="sev critical">critical</span></td><td>The mail server's IP checked against the Spamhaus ZEN blocklist, the same blocklist the IP risk check uses.</td></tr>
   <tr><td class="sig">Mail provider</td><td><span class="sev info">informational</span></td><td>Identifies well-known infrastructure (Google Workspace, Microsoft 365, Zoho, etc.) by fingerprinting the mail server hostname. Informational only.</td></tr>
-  <tr><td class="sig">Look-alike domain check</td><td><span class="sev critical">critical</span></td><td>Compares the domain against major free-mail providers using edit-distance — catches deliberate look-alikes like "gmial.com" or "yah00.com."</td></tr>
+  <tr><td class="sig">Look-alike domain check</td><td><span class="sev critical">critical</span></td><td>Compares the domain against major free-mail providers using edit distance. It catches deliberate look-alikes like "gmial.com" or "yah00.com."</td></tr>
   <tr><td class="sig">Account type</td><td><span class="sev info">informational</span></td><td>Flags local parts like admin@, support@, noreply@ as a shared/role mailbox rather than an individual. Informational only.</td></tr>
  </table>
 
@@ -166,28 +144,28 @@
   <b>A limitation worth knowing</b>
   <p>The mailbox-verification probe runs on port 25, which some cloud
      hosting blocks outbound entirely. If it's blocked on our end, that
-     signal comes back <code>unknown</code> on every single check — it's
+     signal comes back <code>unknown</code> on every single check, it's
      worth checking the <code>detail</code> field on that signal yourself
      rather than assuming it ran.</p>
  </div>
 
  <h2 id="ip">IP risk check <span style="font-weight:400;font-size:15px;color:var(--dim)">(beta)</span></h2>
- <p class="svc-meta"><code>GET /screen-ip</code> &middot; $0.01</p>
- <p>IPv4 only. Two scored signals and one informational one — the smallest
-    of the five checks, and the most honest about it.</p>
+ <p class="svc-meta"><code>GET /screen-ip</code>, $0.01 per check</p>
+ <p>IPv4 only. Two scored signals and one informational one. The smallest
+    of the checks, and the most honest about it.</p>
 
  <table>
   <tr><th>Signal</th><th>Severity</th><th>What it actually checks</th></tr>
-  <tr><td class="sig">Blocklist status (Spamhaus ZEN)</td><td><span class="sev critical">critical</span></td><td>DNS-based lookup against Spamhaus's ZEN blocklist — flags known spam sources, botnet members, and hijacked netblocks.</td></tr>
-  <tr><td class="sig">Tor exit node</td><td><span class="sev critical">critical</span></td><td>Checked against the Tor Project's own public exit-node list (refreshed hourly on our side). Flags that the address is a known point where Tor traffic exits to the open internet — origin of the underlying traffic is anonymized.</td></tr>
-  <tr><td class="sig">Network allocation</td><td><span class="sev info">informational</span></td><td>Who the IP block is allocated to, via RDAP. Never scored — plenty of legitimate traffic comes from datacenter or cloud IPs, so this is context, not a verdict.</td></tr>
+  <tr><td class="sig">Blocklist status (Spamhaus ZEN)</td><td><span class="sev critical">critical</span></td><td>DNS-based lookup against Spamhaus's ZEN blocklist. It flags known spam sources, botnet members, and hijacked netblocks.</td></tr>
+  <tr><td class="sig">Tor exit node</td><td><span class="sev critical">critical</span></td><td>Checked against the Tor Project's own public exit-node list (refreshed hourly on our side). Flags that the address is a known point where Tor traffic exits to the open internet, origin of the underlying traffic is anonymized.</td></tr>
+  <tr><td class="sig">Network allocation</td><td><span class="sev info">informational</span></td><td>Who the IP block is allocated to, via RDAP. Never scored: plenty of legitimate traffic comes from datacenter or cloud IPs, so this is context, not a verdict.</td></tr>
  </table>
 
  <div class="gap">
   <b>What we do NOT check yet</b>
   <p>VPN/hosting classification and community abuse reports (AbuseIPDB)
      both need a paid key we haven't provisioned. IPv6 isn't supported at
-     all yet — only IPv4. Private and reserved ranges (RFC 1918, loopback,
+     all yet, only IPv4. Private and reserved ranges (RFC 1918, loopback,
      etc.) are rejected outright with an error rather than a "low risk"
      result, since there's no public reputation to check for an address
      that isn't routable on the open internet.</p>
@@ -196,7 +174,7 @@
  <h2 id="updates">Keeping this page honest</h2>
  <p>Every response from every endpoint already states exactly which signals
     were checked (<code>signalsChecked</code>, the <code>signals</code>
-    array, or <code>listsChecked</code>) — nothing is checked silently, and
+    array, or <code>listsChecked</code>). Nothing is checked silently, and
     nothing on this page should ever say more than the API itself returns.
     If we add a signal, remove one, or change what a severity means, this
     page gets updated the same day. See <a href="/docs">/docs</a> for the
@@ -206,10 +184,10 @@
 </main>
 
 <div class="colophon">
- <p>A data service, not a compliance service. What you do with a result —
-    clear it, escalate it, hold a payment — is entirely your own process
+ <p>A data service, not a compliance service. What you do with a result
+    (clear it, escalate it, hold a payment) is entirely your own process
     and your own regulatory responsibility.</p>
- <a class="back" href="/">&larr; Back to payperscreen.com</a>
+ <a href="/">Back to the home page</a>
 </div>
 <script src="/nav.js"></script>
 </body></html>

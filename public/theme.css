@@ -1,0 +1,80 @@
+/* PayPerScreen shared theme: pastel risograph.
+   Milk paper, aubergine ink, five pastel "inks" that overlap with multiply
+   like a riso print. Display: Bricolage Grotesque (condensed, heavy).
+   Body: Atkinson Hyperlegible. Loaded by every public page. */
+
+:root{
+  --milk:#FBF8FF; --ink:#2B1A3F; --dim:#6B5A80; --rule:#E6DDF2; --wash:#F3EEFB;
+  --lilac:#CDBBFF; --peach:#FFC8A6; --mint:#B5E6CC; --butter:#FFE58F; --sky:#BBD7FF;
+  --berry:#B42A4A; --leaf:#1C7450; --amber:#8F5600; --link:#5A3DC8;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* legacy names still used by page scripts and older markup */
+  --paper:var(--milk); --ok:var(--leaf); --warn:var(--berry); --partial:var(--amber);
+  --serif:var(--display); --sans:var(--body);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--milk);color:var(--ink);font:17px/1.6 var(--body)}
+a{color:var(--link);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--link);outline-offset:2px;border-radius:4px}
+img,svg{max-width:100%}
+
+/* ---------- type ---------- */
+h1,h2,h3{font-family:var(--display);color:var(--ink);font-variation-settings:"wdth" 80;margin:0}
+h1{font-weight:800;font-size:clamp(40px,7vw,76px);line-height:.98;letter-spacing:-.025em}
+h2{font-weight:800;font-size:clamp(30px,4.2vw,44px);line-height:1.04;letter-spacing:-.02em}
+h3{font-weight:700;font-size:21px;line-height:1.2;letter-spacing:-.01em;font-variation-settings:"wdth" 90}
+p{margin:0 0 14px}
+.lead{font-size:20px;line-height:1.55;color:var(--ink);max-width:36em}
+.muted{color:var(--dim)}
+.small{font-size:15px}
+code{font:.86em var(--mono);background:var(--wash);padding:2px 6px;border-radius:5px}
+pre{font:14px/1.6 var(--mono);background:var(--ink);color:#F4EEFF;padding:18px 20px;border-radius:14px;
+    overflow-x:auto;margin:0 0 20px}
+pre code{background:none;padding:0;color:inherit;font:inherit}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.prose{max-width:720px;margin:0 auto;padding:56px 20px 96px}
+.prose h1{font-size:clamp(38px,6vw,60px);margin:0 0 14px}
+.prose h2{font-size:clamp(26px,3.4vw,34px);margin:52px 0 14px}
+.prose h3{margin:30px 0 8px}
+.prose p,.prose ul,.prose ol{max-width:66ch}
+.prose ul,.prose ol{padding-left:1.25em;margin:0 0 16px}
+.prose li{margin-bottom:6px}
+.prose > p:first-of-type{font-size:20px;line-height:1.55;color:var(--dim);margin-bottom:32px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;font:700 16px var(--body);padding:13px 22px;
+     border-radius:999px;text-decoration:none;border:2px solid var(--ink);cursor:pointer;
+     transition:transform .12s ease,box-shadow .12s ease}
+.btn-ink{background:var(--ink);color:var(--milk);box-shadow:4px 4px 0 var(--lilac)}
+.btn-ink:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--lilac)}
+.btn-soft{background:var(--butter);color:var(--ink)}
+.btn-soft:hover{background:#FFDC66}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0 24px}
+th{text-align:left;font:700 14px var(--body);color:var(--dim);padding:10px 10px 10px 0;border-bottom:2px solid var(--ink)}
+td{padding:12px 10px 12px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+
+/* ---------- notes ---------- */
+.note{background:var(--wash);border-radius:16px;padding:16px 20px;margin:20px 0;color:var(--ink);font-size:15.5px}
+.note b{display:block;margin-bottom:4px}
+
+/* ---------- risograph grain (decorative, behind content) ---------- */
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .1 0 0 0 0 .25 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- footer ---------- */
+.site-foot{border-top:2px solid var(--ink);margin-top:40px}
+.site-foot .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding-top:26px;padding-bottom:40px}
+.site-foot .mark{font:800 20px var(--display);font-variation-settings:"wdth" 80;margin-right:auto;display:flex;align-items:center;gap:10px}
+.site-foot a{color:var(--ink);font-size:15px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
