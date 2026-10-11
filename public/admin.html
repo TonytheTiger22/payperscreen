@@ -101,6 +101,11 @@
   <div id="tbl">Loading&hellip;</div>
  </div>
  <div class="card wide">
+  <div class="lbl">Prepaid balances</div>
+  <div id="credits">Loading&hellip;</div>
+  <div class="note">Each wallet that signed in and topped up. "Outstanding" is prepaid money not yet spent on checks: credit you owe in service.</div>
+ </div>
+ <div class="card wide">
   <div class="lbl">Site visitors — last 30 days</div>
   <div id="visits">Loading&hellip;</div>
   <div class="note">Counted server-side, no cookies, no raw IPs stored. "Visitors" = distinct
@@ -195,6 +200,28 @@ async function loadCases(){
  rows=r.alerts; draw();
 }
 
+const money=(n)=>"$"+Number(n||0).toFixed(2);
+const shortAddr=(a)=>a?a.slice(0,6)+"…"+a.slice(-4):"";
+const scan=(a)=>'<a href="https://basescan.org/address/'+esc(a)+'" target="_blank" rel="noopener" title="'+esc(a)+'"><code>'+esc(shortAddr(a))+'</code></a>';
+async function loadCredits(){
+ const r=await(await fetch("/api/admin/credits")).json();
+ if(!r.ok){ $("credits").textContent=r.error||"Couldn't load."; return; }
+ const t=r.totals;
+ const KIND={topup:"Top-up",charge:"Check",refund:"Refund"};
+ $("credits").innerHTML=(r.topupsEnabled?'':'<div class="err">Top-ups are disabled on this deploy (DB_PATH not set).</div>')
+  +'<div class="kv"><span>Wallets</span><b>'+t.wallets+'</b></div>'
+  +'<div class="kv"><span>Topped up (all time)</span><b>'+money(t.topups)+'</b></div>'
+  +'<div class="kv"><span>Spent on checks</span><b>'+money(t.spent)+' &middot; '+t.checks+' checks</b></div>'
+  +'<div class="kv"><span>Outstanding balances</span><b>'+money(t.outstanding)+'</b></div>'
+  +(r.wallets.length?'<table><tr><th>Wallet</th><th>Balance</th><th>Topped up</th><th>Spent</th><th>Checks</th><th>Last active</th></tr>'
+    +r.wallets.map(w=>'<tr><td>'+scan(w.address)+'</td><td><b>'+money(w.balance)+'</b></td><td>'+money(w.topups)+'</td><td>'
+      +money(w.spent-w.refunds)+'</td><td>'+w.checks+'</td><td>'+esc(when(w.last_seen))+'</td></tr>').join('')+'</table>'
+    :'<div class="note">No prepaid activity yet.</div>')
+  +(r.activity.length?'<div class="lbl" style="margin-top:16px">Recent activity</div><table><tr><th>When</th><th>Wallet</th><th>What</th><th>Amount</th><th>Receipt</th></tr>'
+    +r.activity.map(a=>'<tr><td>'+esc(when(a.created_at))+'</td><td>'+scan(a.address)+'</td><td>'+esc(KIND[a.kind]||a.kind)
+      +(a.kind==="charge"&&a.label?' &middot; '+esc(a.label):'')+'</td><td>'+(a.delta>0?'+':'&minus;')+money(Math.abs(a.delta))+'</td><td>'
+      +(a.tx?'<a href="https://basescan.org/tx/'+esc(a.tx)+'" target="_blank" rel="noopener">'+esc(a.tx.slice(0,10))+'… &#8599;</a>':'')+'</td></tr>').join('')+'</table>':'');
+}
 async function loadVisits(){
  const r=await(await fetch("/api/admin/visits?days=30")).json();
  if(!r.ok){ $("visits").textContent=r.error||"Couldn't load."; return; }
@@ -212,7 +239,7 @@ async function loadVisits(){
   +'<div class="note">Filtered out as automated (bots, link previews, scanners; not in the numbers above): '
   +r.automated.views+' views from '+r.automated.visitors+' sources.</div>';
 }
-function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadVisits(); }
+function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadCredits(); loadVisits(); }
 function showGate(){ $("gate").style.display=""; $("dash").style.display="none"; }
 
 fetch("/api/admin/me").then(r=>r.json()).then(r=>{ if(r.isAdmin) showDash(); });
