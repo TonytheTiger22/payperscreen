@@ -179,7 +179,7 @@ const DISCOVERY = [
              ["country", "Nationality", false], ["type", "Individual or Entity", false]] },
   { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit",
     params: [["name", "Same query as the prior /screen hit", true]] },
-  { path: "/screen-address", price: "0.02", summary: "Crypto address screening: OFAC sanctions, Tether and Circle freezes, known hack proceeds",
+  { path: "/screen-address", price: "0.02", summary: "Crypto address screening: OFAC sanctions, stablecoin freezes, known hack proceeds",
     params: [["address", "Wallet address on any supported chain", true]] },
   { path: "/screen-email", price: "0.02", summary: "Email trust check",
     params: [["email", "Email address to check", true]] },
@@ -244,18 +244,41 @@ const NAME_SOURCES = Object.keys(LIST_LABELS);
 
 // Only lists that are actually loaded are reported as checked, so
 // `listsChecked` can never claim coverage the database doesn't have.
-let loadedCache = { at: 0, sources: ["OFAC"] };
+let loadedCache = { at: 0, sources: ["OFAC"], meta: {} };
 async function loadedSources() {
   if (Date.now() - loadedCache.at < 60_000) return loadedCache.sources;
   try {
     const { rows } = await pool.query(
-      `SELECT m.source FROM list_metadata m
+      `SELECT m.source, m.list_version, m.refreshed_at FROM list_metadata m
        WHERE m.source = ANY($1) AND EXISTS (SELECT 1 FROM entities e WHERE e.source = m.source)`,
       [NAME_SOURCES]);
     const have = new Set(rows.map((r) => r.source));
-    loadedCache = { at: Date.now(), sources: NAME_SOURCES.filter((x) => have.has(x)) };
+    loadedCache = { at: Date.now(), sources: NAME_SOURCES.filter((x) => have.has(x)),
+                    meta: Object.fromEntries(rows.map((r) => [r.source, r])) };
   } catch { loadedCache.at = Date.now() - 50_000; }   // keep last good value, retry soon
   return loadedCache.sources;
+}
+
+// Which version of each list a result was checked against: the publisher's
+// own publication date (falls back to the download date if the file had none)
+// and when we last downloaded it. Recorded in audit trails, so it must be real.
+const versionsFor = (sources) => sources.map((x) => ({
+  list: LIST_LABELS[x],
+  version: loadedCache.meta[x]?.list_version ?? null,
+  refreshedAt: loadedCache.meta[x]?.refreshed_at ?? null,
+}));
+async function addressListVersions() {
+  const { rows } = await pool.query(
+    "SELECT source, list_version, refreshed_at FROM list_metadata WHERE source = ANY($1)",
+    [["OFAC-SDN-CRYPTO", "STABLECOIN-FREEZE"]]).catch(() => ({ rows: [] }));
+  const m = Object.fromEntries(rows.map((r) => [r.source, r]));
+  return [
+    { list: "OFAC SDN digital currency addresses", version: m["OFAC-SDN-CRYPTO"]?.list_version ?? null,
+      refreshedAt: m["OFAC-SDN-CRYPTO"]?.refreshed_at ?? null },
+    { list: "Stablecoin freezes", version: m["STABLECOIN-FREEZE"]?.list_version ?? null,
+      refreshedAt: m["STABLECOIN-FREEZE"]?.refreshed_at ?? null },
+    { list: "Known hack and exploit proceeds", version: HACKS.updated, refreshedAt: null },
+  ];
 }
 const HIT_THRESHOLD = 0.4;
 
@@ -403,12 +426,14 @@ app.get("/screen-address", async (req, res) => {
   const address = (req.query.address || "").trim();
   if (!address) return res.status(400).json({ error: "address is required" });
 
-  const [matches, freezes] = await Promise.all([lookupAddress(address), lookupFreezes(pool, address)]);
+  const [matches, freezes, listVersions] = await Promise.all(
+    [lookupAddress(address), lookupFreezes(pool, address), addressListVersions()]);
   const hacks = lookupHack(address);
 
   res.json({
     address,
     screenedAt: new Date().toISOString(),
+    listVersions,
     sanctioned: matches.length > 0,
     matches: matches.map((m) => ({ asset: m.asset, source: m.source,
       ...(m.entity_name ? { listedParty: m.entity_name } : {}),
@@ -486,6 +511,7 @@ app.get("/screen", async (req, res) => {
   res.json({
     subject,
     listsChecked: sources.map((x) => LIST_LABELS[x]),
+    listVersions: versionsFor(sources),
     screenedAt: new Date().toISOString(),
     hitCount: hits.length,
     hits,
@@ -548,7 +574,7 @@ app.get("/context", async (req, res) => {
         status: typeCmp.status, note: typeCmp.note },
     ],
     meta: {
-      list: LIST_LABELS[top.source], listVersion: "live", program: top.program,
+      list: LIST_LABELS[top.source], listVersion: loadedCache.meta[top.source]?.list_version ?? null, program: top.program,
       uid: top.uid, score, matchedOn: top.basis,
     },
   });

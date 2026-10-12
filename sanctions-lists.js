@@ -120,6 +120,24 @@ export function parseOFAC(xml) {
   return out;
 }
 
+// ---- Publication dates ------------------------------------------------------
+// Each publisher stamps its file with the date it was generated. That date,
+// not the day we downloaded it, is the list version an audit record should
+// cite. Returns YYYY-MM-DD, or null if the stamp isn't found (the caller then
+// falls back to the download date).
+const ymd = (y, m, d) => (+m >= 1 && +m <= 12 && +d >= 1 && +d <= 31)
+  ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
+export const versionOf = {
+  OFAC: (xml) => { const m = xml.match(/<Publish_Date>\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*<\/Publish_Date>/);   // MM/DD/YYYY
+                   return m ? ymd(m[3], m[1], m[2]) : null; },
+  UN:   (xml) => { const m = xml.slice(0, 5000).match(/\bdateGenerated="(\d{4})-(\d{2})-(\d{2})/);
+                   return m ? ymd(m[1], m[2], m[3]) : null; },
+  EU:   (xml) => { const m = xml.slice(0, 5000).match(/\bgenerationDate="(\d{4})-(\d{2})-(\d{2})/);
+                   return m ? ymd(m[1], m[2], m[3]) : null; },
+  UK:   (xml) => { const m = xml.slice(0, 5000).match(/<DateGenerated>\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);   // DD/MM/YYYY
+                   return m ? ymd(m[3], m[2], m[1]) : null; },
+};
+
 export const SOURCES = {
   OFAC: {
     label: "OFAC Specially Designated Nationals (SDN) list",
@@ -148,7 +166,7 @@ export const SOURCES = {
 // query per row: OFAC alone is ~19k entities plus aliases, and row-by-row it
 // ran long enough to be killed by the next deploy before it could commit.
 const CHUNK = 2000;
-export async function storeRecords(client, source, records) {
+export async function storeRecords(client, source, records, version = null) {
   const seen = new Set();
   const rows = records.filter((r) => !seen.has(r.uid) && seen.add(r.uid));   // (source, uid) is unique
   try {
@@ -175,7 +193,7 @@ export async function storeRecords(client, source, records) {
     await client.query(
       `INSERT INTO list_metadata (source, list_version, refreshed_at) VALUES ($1,$2,now())
        ON CONFLICT (source) DO UPDATE SET list_version=$2, refreshed_at=now()`,
-      [source, new Date().toISOString().slice(0, 10)]);
+      [source, version || new Date().toISOString().slice(0, 10)]);
     await client.query("COMMIT");
     return rows.length;
   } catch (err) {
@@ -195,8 +213,9 @@ export async function refreshSource(client, source, log = console.log) {
   if (records.length < s.minRecords)
     throw new Error(`${source}: only ${records.length} records parsed (expected at least ` +
                     `${s.minRecords}) — the file format may have changed; previous data left untouched`);
-  const n = await storeRecords(client, source, records);
-  log(`[${source}] loaded ${n} records`);
+  const version = versionOf[source]?.(xml) ?? null;
+  const n = await storeRecords(client, source, records, version);
+  log(`[${source}] loaded ${n} records, ` + (version ? `published ${version}` : "no publication date found in the file; using today's date"));
   return n;
 }
 
@@ -229,7 +248,7 @@ export function parseOFACCrypto(xml) {
     types.set(m[1], m[2].trim().toUpperCase());
   if (!types.size) return { version: null, addresses: [] };
 
-  const d = xml.match(/<DateOfIssue>\s*<Year>(\d{4})<\/Year>\s*<Month>(\d{1,2})<\/Month>\s*<Day>(\d{1,2})<\/Day>/);
+  const d = xml.slice(0, 20000).match(/<(?:\w+:)?DateOfIssue\b[^>]*>[\s\S]{0,200}?<(?:\w+:)?Year\b[^>]*>(\d{4})<[\s\S]{0,100}?<(?:\w+:)?Month\b[^>]*>(\d{1,2})<[\s\S]{0,100}?<(?:\w+:)?Day\b[^>]*>(\d{1,2})</);
   const version = d ? `${d[1]}-${d[2].padStart(2, "0")}-${d[3].padStart(2, "0")}` : null;
 
   const out = [];

@@ -21,7 +21,12 @@ const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 const httpClient = new x402HTTPClient(client);
 
 const API = process.env.COMPLIANCE_API_URL || "http://localhost:4025";
-const LIST_VERSION = "OFAC-2026-08-17";
+// The list versions a result was checked against, as reported by the API
+// (publisher's publication date per list), e.g. "OFAC SDN 2026-10-09; UN
+// Consolidated 2026-10-10". Stored with every audit record.
+const listVersionOf = (body) => Array.isArray(body?.listVersions) && body.listVersions.length
+  ? body.listVersions.map((v) => `${v.list} ${v.version ?? "unknown"}`).join("; ")
+  : "unknown (API did not report list versions)";
 
 const ledger = { spent: 0, lines: [] };
 // What the browser sees as "ledger": the site's running spend normally; in wallet mode
@@ -410,7 +415,7 @@ app.post("/api/admin/test-case", (req, res) => {
   const rec = audit.record({
     subject: { name: subject, dob: null, country: null },
     listsChecked: lists,
-    listVersion: LIST_VERSION,
+    listVersion: "TEST (no lists checked)",
     hitCount,
     topScore: type === "name" ? { low: null, medium: 70, high: 95 }[severity] : null,
     topMatch,
@@ -539,7 +544,7 @@ app.post("/api/screen-free", async (req, res) => {
     const rec = audit.record({
       subject: b.subject,
       listsChecked: b.listsChecked,
-      listVersion: LIST_VERSION,
+      listVersion: listVersionOf(b),
       hitCount: b.hitCount,
       topScore: b.hitCount ? b.hits[0].score : null,
       topMatch: b.hitCount ? b.hits[0].name : null,
@@ -605,7 +610,7 @@ app.post("/api/screen-address", async (req, res) => {
       subject: { name: address, dob: null, country: null },
       listsChecked: [b.source, ...(b.frozenByIssuer ? ["Stablecoin freezes"] : []),
                      ...(b.hackFunds ? ["Known hack and exploit proceeds"] : [])],
-      listVersion: LIST_VERSION,
+      listVersion: listVersionOf(b),
       hitCount: (b.sanctioned ? 1 : 0) + (hack.length ? 1 : 0) + (frozen.length ? 1 : 0),
       topScore: null,
       topMatch: [b.sanctioned ? "OFAC: " + b.matches.map((m) => m.asset).join(", ") : null,
@@ -641,7 +646,7 @@ app.post("/api/check-email", async (req, res) => {
     const rec = audit.record({
       subject: { name: b.email, dob: null, country: null },
       listsChecked: ["Email trust signals"],
-      listVersion: LIST_VERSION,
+      listVersion: "live lookups (no fixed list version)",
       hitCount: b.flagCount,
       topScore: null,
       topMatch: b.riskLevel,
@@ -672,7 +677,7 @@ app.post("/api/check-ip", async (req, res) => {
     const rec = audit.record({
       subject: { name: b.ip, dob: null, country: null },
       listsChecked: ["IP risk signals (beta)"],
-      listVersion: LIST_VERSION,
+      listVersion: "live lookups (no fixed list version)",
       hitCount: b.flagCount,
       topScore: null,
       topMatch: b.riskLevel,

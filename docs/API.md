@@ -82,12 +82,19 @@ response names exactly what was checked).
 ```json
 {
   "subject": { "name": "...", "dob": null, "country": null, "type": "Individual" },
-  "listsChecked": ["OFAC SDN"],
+  "listsChecked": ["OFAC SDN", "UN Consolidated", "EU Consolidated", "UK Sanctions List"],
+  "listVersions": [
+    { "list": "OFAC SDN", "version": "2026-10-09", "refreshedAt": "2026-10-11T17:33:10.414Z" }
+  ],
   "screenedAt": "2026-10-03T12:40:00.000Z",
   "hitCount": 1,
   "hits": [{ "list": "OFAC SDN", "score": 0.87, "name": "..." }]
 }
 ```
+
+`listVersions` gives, per list, the publisher's own publication date
+(`version`) and when we last downloaded it (`refreshedAt`). Keep it with your
+record of the check: it shows exactly which edition of each list was used.
 
 `hits` has at most one entry **per list**: the best match on that list above an
 internal similarity threshold, strongest first. `hitCount` is the number of
@@ -115,7 +122,7 @@ listed party. Only meaningful right after a `/screen` call that returned
       "status": "match", "note": "exact match" }
   ],
   "meta": {
-    "list": "OFAC SDN", "listVersion": "live", "program": "...",
+    "list": "OFAC SDN", "listVersion": "2026-10-09", "program": "...",
     "uid": "...", "score": 0.87, "matchedOn": "primary name"
   }
 }
@@ -166,6 +173,7 @@ string match, not fuzzy. A sanctions match names the listed party
 {
   "address": "...",
   "screenedAt": "2026-10-03T12:40:00.000Z",
+  "listVersions": [{ "list": "OFAC SDN digital currency addresses", "version": "2026-10-09", "refreshedAt": "..." }, "..."],
   "sanctioned": true,
   "matches": [{ "asset": "XBT", "source": "OFAC-SDN-CRYPTO", "listedParty": "EXAMPLE LISTED PARTY", "sdnUid": "12345" }],
   "source": "OFAC SDN digital currency addresses",
