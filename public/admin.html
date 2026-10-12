@@ -263,6 +263,19 @@ async function loadCredits(){
 }
 const LIST_NAME={OFAC:"OFAC SDN",UN:"UN Consolidated",EU:"EU Consolidated",UK:"UK Sanctions List",
  "OFAC-SDN-CRYPTO":"OFAC wallet addresses","STABLECOIN-FREEZE":"Stablecoin freezes"};
+function bazaarTable(r){
+ if(!r.bazaar||!r.bazaar.length) return '';
+ const PILL={success:'<span class="pill ok">listed</span>',processing:'<span class="pill warn">processing</span>',
+  rejected:'<span class="pill bad">rejected</span>'};
+ const why=(b)=>{const d=b.detail||{};return d.rejectedReason||d.reason||d.code||'';};
+ return '<div class="lbl" style="margin-top:16px">Coinbase Bazaar listing</div>'
+  +'<table><tr><th>Endpoint</th><th>Paid calls</th><th>Last paid</th><th>Bazaar</th><th>Notes</th></tr>'
+  +r.bazaar.map(b=>'<tr><td><code>'+esc(b.resource.replace(/^https?:\/\/[^/]+/,''))+'</code></td><td>'+b.settledPayments
+   +'</td><td>'+(b.lastSettledAt?esc(when(b.lastSettledAt)):'never')+'</td><td>'
+   +(b.status?(PILL[b.status]||'<span class="pill warn">'+esc(b.status)+'</span>'):(b.settledPayments?'<span class="pill warn">no answer</span>':'<span class="pill warn">not yet</span>'))
+   +'</td><td>'+esc(why(b)||(b.settledPayments?'':'Needs one paid call before Coinbase can list it.'))+'</td></tr>').join('')
+  +'</table><div class="note">Counted from now on (earlier payments aren\'t included). Coinbase decides each listing after a paid call; a route with no paid call for 30 days drops off.</div>';
+}
 async function loadRefresh(){
  const r=await(await fetch("/api/admin/refresh-status")).json();
  if(!r.ok){ $("refresh").innerHTML='<div class="err">'+esc(r.error||"Couldn't load.")+'</div>'; return; }
@@ -279,6 +292,7 @@ async function loadRefresh(){
    +r.lists.map(l=>'<tr><td>'+esc(LIST_NAME[l.source]||l.source)+'</td><td>'+pill(l)+'</td><td>'+esc(when(l.attemptedAt))
     +'</td><td>'+(l.records==null?'n/a':l.records)+'</td><td>'+esc(l.error||partial(l)||"")+'</td></tr>').join('')+'</table>'
    :'<div class="note">No refresh has been recorded yet. The first one starts a minute after the API deploys.</div>')
+  +bazaarTable(r)
   +(r.stablecoinFreezesByChain.length?'<div class="lbl" style="margin-top:16px">Stablecoin freezes by chain</div><table><tr><th>Token</th><th>Chain</th><th>Frozen wallets</th></tr>'
    +r.stablecoinFreezesByChain.map(f=>'<tr><td>'+esc(f.token)+'</td><td>'+esc(f.chain)+'</td><td>'+f.n+'</td></tr>').join('')+'</table>':'');
 }

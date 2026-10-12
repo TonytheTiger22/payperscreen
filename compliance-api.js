@@ -55,6 +55,32 @@ const priced = (price, description, extras = {}) => ({
 // without already knowing the URL. Purely additive: has no effect on the
 // payment flow itself, only on whether the route shows up in a discovery
 // listing.
+// ---- Bazaar listing status -------------------------------------------------
+// After each settled payment the CDP facilitator says whether it catalogued
+// the route in its Bazaar discovery index ("success", "processing" or
+// "rejected", with a reason). The x402 library only logs that, so it's
+// recorded here per route and shown on /refresh-status and /admin.
+await pool.query(`CREATE TABLE IF NOT EXISTS x402_settlements (
+    resource TEXT PRIMARY KEY, settled INT NOT NULL DEFAULT 0, last_at TIMESTAMPTZ, last_tx TEXT,
+    bazaar_status TEXT, bazaar_detail JSONB, bazaar_at TIMESTAMPTZ)`)
+  .catch((e) => console.error("x402_settlements table:", String(e.message || e)));
+
+async function recordSettlement(ctx) {
+  const r = ctx?.result || {};
+  if (r.success === false) return;
+  const resource = String(ctx?.paymentPayload?.resource?.url || ctx?.requirements?.resource || "unknown").split("?")[0];
+  const bazaar = r.extensionResponses?.bazaar ?? null;
+  await pool.query(
+    `INSERT INTO x402_settlements (resource, settled, last_at, last_tx, bazaar_status, bazaar_detail, bazaar_at)
+     VALUES ($1, 1, now(), $2, $3, $4, CASE WHEN $3::text IS NULL THEN NULL ELSE now() END)
+     ON CONFLICT (resource) DO UPDATE SET settled = x402_settlements.settled + 1, last_at = now(), last_tx = $2,
+       bazaar_status = COALESCE($3, x402_settlements.bazaar_status),
+       bazaar_detail = COALESCE($4, x402_settlements.bazaar_detail),
+       bazaar_at = CASE WHEN $3::text IS NULL THEN x402_settlements.bazaar_at ELSE now() END`,
+    [resource, r.transaction || null, bazaar?.status ?? (bazaar ? "unknown" : null),
+     bazaar ? JSON.stringify(bazaar).slice(0, 2000) : null]);
+}
+
 // Each paid route reports its public URL as the x402 `resource`, so a
 // payment settles for api.payperscreen.com even when payperscreen.com calls
 // the API over Railway's generated or internal hostname. Bazaar indexes by
@@ -146,7 +172,8 @@ app.use(paymentMiddleware(
   },
   new x402ResourceServer(facilitator)
     .register(NETWORK, new ExactEvmScheme())
-    .registerExtension(bazaarResourceServerExtension),
+    .registerExtension(bazaarResourceServerExtension)
+    .onAfterSettle((ctx) => recordSettlement(ctx).catch((e) => console.error("recordSettlement:", String(e.message || e)))),
 ));
 
 // Crawlers and agent fetchers check robots.txt first; without one some of
@@ -616,9 +643,11 @@ async function step(source, fn) {
 const run = { running: false, startedAt: null, finishedAt: null };
 
 app.get("/refresh-status", async (_, res) => {
-  const [{ rows }, freezes] = await Promise.all([
+  const [{ rows }, settlements, freezes] = await Promise.all([
     pool.query("SELECT source, attempted_at, ok, records, error, detail FROM refresh_status ORDER BY source")
       .catch(() => ({ rows: [] })),
+    pool.query("SELECT resource, settled, last_at, bazaar_status, bazaar_detail, bazaar_at FROM x402_settlements ORDER BY resource")
+      .then((r) => r.rows).catch(() => []),
     pool.query("SELECT token, chain, count(*)::int AS n FROM stablecoin_freezes GROUP BY token, chain ORDER BY token, chain")
       .then((r) => r.rows).catch(() => []),
   ]);
@@ -628,6 +657,15 @@ app.get("/refresh-status", async (_, res) => {
     lists: rows.map((r) => ({ source: r.source, attemptedAt: r.attempted_at, ok: r.ok, records: r.records,
                               error: r.error, detail: r.detail })),
     stablecoinFreezesByChain: freezes,
+    // Paid routes without a row here have never had a settled payment, which
+    // is the first thing Bazaar needs before it can list them.
+    bazaar: DISCOVERY.map((d) => {
+      const r = settlements.find((x) => x.resource === PUBLIC_API + d.path);
+      return { resource: PUBLIC_API + d.path, settledPayments: r?.settled ?? 0, lastSettledAt: r?.last_at ?? null,
+               status: r?.bazaar_status ?? null, detail: r?.bazaar_detail ?? null, statusAt: r?.bazaar_at ?? null };
+    }),
+    otherSettlements: settlements.filter((x) => !DISCOVERY.some((d) => x.resource === PUBLIC_API + d.path))
+      .map((x) => ({ resource: x.resource, settledPayments: x.settled, lastSettledAt: x.last_at })),
   });
 });
 
