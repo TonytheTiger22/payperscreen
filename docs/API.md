@@ -2,7 +2,8 @@
 
 A sanctions and crypto-wallet screening API, paid per call over
 [x402](https://x402.org): no account, no API key, no subscription. Each
-request pays for itself in USDC on Base mainnet at the moment it's made.
+request pays for itself in USDC (on Base, Polygon or Arbitrum) at the moment
+it's made.
 
 This document is for anyone integrating programmatically, agent or human.
 If you're a person using the web UI instead, see
@@ -39,8 +40,9 @@ authorized by a signed payment, checked per-call.
 
 1. You call an endpoint with no payment attached.
 2. The server responds `402 Payment Required` with the exact payment it
-   needs: scheme (`exact`), network (`eip155:8453`, Base mainnet), asset
-   (USDC), amount, and the address to pay.
+   needs: scheme (`exact`), asset (USDC), amount and the address to pay, once
+   per network you can pay on: Base (`eip155:8453`), Polygon (`eip155:137`)
+   and Arbitrum (`eip155:42161`). Your client pays with whichever it supports.
 3. Your client signs an EIP-3009 `transferWithAuthorization`: a gasless,
    off-chain signature. You never pay gas; the facilitator that settles
    the payment does.
@@ -57,8 +59,8 @@ success. Bad input (a missing name, an invalid email or IP address) gets a
 `400`, and a field comparison with nothing to compare gets a `404`; in both
 cases the payment is cancelled and nothing is charged.
 
-**Wallet requirements:** real USDC on Base mainnet. No ETH needed: you
-only sign, you never submit a transaction yourself.
+**Wallet requirements:** real USDC on Base, Polygon or Arbitrum. No gas
+token needed: you only sign, you never submit a transaction yourself.
 
 ## Endpoints
 
@@ -76,6 +78,8 @@ response names exactly what was checked).
 | `dob`     | no       | `YYYY-MM-DD` if known                    |
 | `country` | no       | Nationality, free text                   |
 | `type`    | no       | `Individual` or `Entity` (default: `Individual`) |
+| `threshold` | no     | Minimum match score, `0.3` to `1` (default `0.4`). Higher means fewer, closer matches |
+| `limit`   | no       | Matches per list, `1` to `10` (default `1`) |
 
 **Response**
 
@@ -87,8 +91,16 @@ response names exactly what was checked).
     { "list": "OFAC SDN", "version": "2026-10-09", "refreshedAt": "2026-10-11T17:33:10.414Z" }
   ],
   "screenedAt": "2026-10-03T12:40:00.000Z",
+  "settings": { "threshold": 0.4, "limit": 1 },
+  "potentialMatch": true,
   "hitCount": 1,
-  "hits": [{ "list": "OFAC SDN", "score": 0.87, "name": "..." }]
+  "listsWithHits": 1,
+  "hits": [{
+    "list": "OFAC SDN", "score": 0.87, "name": "...", "id": "12345",
+    "type": "Individual", "programs": ["RUSSIA-EO14024"],
+    "matchedOn": "alias \"...\"", "aliases": ["...", "..."]
+  }],
+  "note": "Possible matches for review, not a legal determination. ..."
 }
 ```
 
@@ -96,10 +108,13 @@ response names exactly what was checked).
 (`version`) and when we last downloaded it (`refreshedAt`). Keep it with your
 record of the check: it shows exactly which edition of each list was used.
 
-`hits` has at most one entry **per list**: the best match on that list above an
-internal similarity threshold, strongest first. `hitCount` is the number of
-lists with a hit. If it is above `0`, call `/context` for the field-by-field
-comparison against the strongest match.
+`hits` holds up to `limit` matches **per list** (one by default) scoring at
+least `threshold`, strongest first. Each gives the listed name, the list's own
+record ID (`id`), entity type, sanctions programmes, what matched (the primary
+name or a named alias) and up to ten aliases. `hitCount` is the number of
+matches, `listsWithHits` the number of lists with at least one. If
+`potentialMatch` is true, call `/context` with the subject's date of birth and
+nationality for the field-by-field comparison against the strongest match.
 
 ### `GET /context`: $0.05
 
@@ -270,6 +285,10 @@ supported yet. VPN/hosting classification and community abuse reports
 
 ## Free endpoints
 
+- `GET /sample/screen` and `GET /sample/screen-address`: a real, live result
+  for one fixed example each (a name, and an OFAC-listed wallet), so you can
+  see the exact response before paying. The input can't be changed; results
+  are cached for an hour.
 - `GET /lists-meta`: every loaded list with its record count, version and
   last refresh time (powers [/lists](https://payperscreen.com/lists)).
 - `GET /refresh-status`: the last refresh attempt per list, with any error,

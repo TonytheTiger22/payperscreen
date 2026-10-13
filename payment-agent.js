@@ -16,7 +16,10 @@ import { base } from "viem/chains";
 const signer = privateKeyToAccount(process.env.BUYER_KEY);
 console.log("Buyer wallet address:", signer.address);
 const client = new x402Client();
-client.register("eip155:*", new ExactEvmScheme(signer));
+// Base only: the site's wallet holds USDC on Base. The API also accepts
+// Polygon and Arbitrum for outside buyers; pinning here means the site
+// never tries to pay on a chain where it has no funds.
+client.register("eip155:8453", new ExactEvmScheme(signer));
 const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 const httpClient = new x402HTTPClient(client);
 

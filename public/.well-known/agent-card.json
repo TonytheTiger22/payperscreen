@@ -14,10 +14,26 @@
   "payment": {
     "protocol": "x402",
     "scheme": "exact",
-    "network": "eip155:8453",
-    "chain": "Base mainnet",
+    "networks": [
+      {
+        "network": "eip155:8453",
+        "chain": "Base mainnet"
+      },
+      {
+        "network": "eip155:137",
+        "chain": "Polygon"
+      },
+      {
+        "network": "eip155:42161",
+        "chain": "Arbitrum One"
+      }
+    ],
     "asset": "USDC",
-    "spec": "https://x402.org"
+    "spec": "https://x402.org",
+    "freeSamples": [
+      "https://api.payperscreen.com/sample/screen",
+      "https://api.payperscreen.com/sample/screen-address"
+    ]
   },
   "skills": [
     {
