@@ -248,7 +248,13 @@ async function loadCredits(){
  if(!r.ok){ $("credits").textContent=r.error||"Couldn't load."; return; }
  const t=r.totals;
  const KIND={topup:"Top-up",charge:"Check",refund:"Refund"};
+ const sw=r.siteWallet||{};
+ const swLow=sw.usdc!=null&&sw.usdc<Math.max(1,t.outstanding);
  $("credits").innerHTML=(r.topupsEnabled?'':'<div class="err">Top-ups are disabled on this deploy (DB_PATH not set).</div>')
+  +(sw.address?'<div class="kv"><span>Site payment wallet (pays the API for prepaid checks)</span><b>'+scan(sw.address)+' '
+    +(sw.usdc==null?'balance unavailable':money(sw.usdc)+' USDC on Base')+'</b></div>'
+    +(swLow?'<div class="err">Low: prepaid checks fail when this wallet can\'t pay. Send USDC on Base to '+esc(sw.address)
+      +' (at least the outstanding balances, '+money(t.outstanding)+').</div>':''):'')
   +'<div class="kv"><span>Wallets</span><b>'+t.wallets+'</b></div>'
   +'<div class="kv"><span>Topped up (all time)</span><b>'+money(t.topups)+'</b></div>'
   +'<div class="kv"><span>Spent on checks</span><b>'+money(t.spent)+' across '+t.checks+' checks</b></div>'

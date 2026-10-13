@@ -10,7 +10,7 @@ import * as accounts from "./accounts-store.js";
 import * as analytics from "./analytics-store.js";
 import * as credits from "./credits-store.js";
 import { scheduleRetention } from "./retention.js";
-import { createPublicClient, http, verifyMessage } from "viem";
+import { createPublicClient, http, verifyMessage, erc20Abi, formatUnits } from "viem";
 import { base } from "viem/chains";
 
 const signer = privateKeyToAccount(process.env.BUYER_KEY);
@@ -102,6 +102,14 @@ async function buyQuery(path, params, label, price, req) {
   return siteBuy(path, params, label, price);
 }
 
+// Plain-language messages for why the site wallet's payment was refused.
+// The visitor's prepaid balance is refunded in every case (see balanceBuy).
+const SITE_PAY_ERRORS = {
+  insufficient_funds: "Our payment wallet is temporarily out of USDC, so the check didn't run. Your balance wasn't charged. Please try again later.",
+  invalid_exact_evm_payload_authorization_valid_before: "The payment expired before it settled. Your balance wasn't charged; please try again.",
+  invalid_exact_evm_payload_authorization_valid_after: "The payment wasn't valid yet. Your balance wasn't charged; please try again.",
+};
+
 // Pays the API from the site's own wallet (BUYER_KEY). Callers must have been
 // authorised first (admin, or a prepaid balance charge) — see buyQuery/balanceBuy.
 async function siteBuy(path, params, label, price) {
@@ -115,7 +123,12 @@ async function siteBuy(path, params, label, price) {
     throw new Error(body.error || `The check failed (HTTP ${r.status}), nothing was charged.`);
   }
   const out = await httpClient.processResponse(r);
-  if (out.paymentStatus !== "settled") throw new Error("Payment " + out.paymentStatus);
+  if (out.paymentStatus !== "settled") {
+    // The API's 402 carries the facilitator's reason (e.g. insufficient_funds).
+    const reason = out.header?.error || out.header?.errorReason || out.paymentStatus;
+    console.error(`[site wallet] ${path} payment not accepted: ${reason}`);
+    throw new Error(SITE_PAY_ERRORS[reason] || `The check couldn't be paid (${reason}). Nothing was charged; please try again in a minute.`);
+  }
   ledger.spent = +(ledger.spent + price).toFixed(4);
   const line = { label, price, ms: Date.now() - t0, tx: txOf(out.header),
                  at: new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) };
@@ -365,8 +378,22 @@ app.get("/api/admin/refresh-status", adminOnly, async (_, res) => {
   } catch (e) { res.json({ ok: false, error: "Couldn't reach the API: " + String(e.message || e) }); }
 });
 
-app.get("/api/admin/credits", (req, res) => {
+// USDC on Base held by the site's own payment wallet (BUYER_KEY). It pays the
+// API for every prepaid-balance check, so if it runs dry those checks fail.
+const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+async function siteWalletUsdc() {
+  try {
+    const raw = await Promise.race([
+      basePublic.readContract({ address: BASE_USDC, abi: erc20Abi, functionName: "balanceOf", args: [signer.address] }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
+    ]);
+    return Number(formatUnits(raw, 6));
+  } catch { return null; }
+}
+
+app.get("/api/admin/credits", async (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
+  const siteWallet = { address: signer.address, usdc: await siteWalletUsdc() };
   const u = credits.toUsd;
   const wallets = credits.adminWallets().map((w) => ({ ...w,
     balance: u(w.balance), topups: u(w.topups), spent: u(w.spent), refunds: u(w.refunds) }));
@@ -375,7 +402,7 @@ app.get("/api/admin/credits", (req, res) => {
     outstanding: t.outstanding + w.balance, checks: t.checks + w.checks,
   }), { wallets: 0, topups: 0, spent: 0, outstanding: 0, checks: 0 });
   const activity = credits.adminActivity(100).map((a) => ({ ...a, delta: u(a.delta) }));
-  res.json({ ok: true, totals, wallets, activity, topupsEnabled: BALANCES_PERSISTENT });
+  res.json({ ok: true, totals, wallets, activity, topupsEnabled: BALANCES_PERSISTENT, siteWallet });
 });
 
 app.get("/api/admin/cases", (req, res) => {
