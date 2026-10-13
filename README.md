@@ -13,8 +13,8 @@ This repo is the whole thing: the paid API, the website, the case queue and the 
 
 | Endpoint | Price | What it does |
 |---|---|---|
-| `GET /screen?name=` | $0.02 | Fuzzy name match against OFAC SDN, UN Consolidated, EU Consolidated and UK Sanctions lists, refreshed daily |
-| `GET /context?name=` | $0.05 | Compares date of birth, nationality and type against the best-matching listed record |
+| `GET /screen?name=` | $0.02 | Fuzzy name match against OFAC SDN, UN Consolidated, EU Consolidated and UK Sanctions lists, refreshed daily. Each hit includes record ID, programmes, aliases and a date of birth / nationality / type comparison |
+| `GET /context?name=` | $0.05 | The same comparison for the top hit; now included in `/screen`, kept for existing integrations |
 | `GET /screen-address?address=` | $0.02 | Exact match against OFAC sanctioned addresses (with the listed party), Tether USDT freezes on Tron, and known hack proceeds. Each source is reported separately |
 | `GET /screen-email?email=` | $0.02 | Ten deterministic signals: MX, disposable domain, domain age, certificate history, DNSBL, typo-squat, role account, mailbox probe and more |
 | `GET /screen-ip?ip=` | $0.01 | Spamhaus ZEN and Tor exit node check (beta) |

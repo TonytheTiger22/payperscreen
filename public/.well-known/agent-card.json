@@ -39,7 +39,7 @@
     {
       "id": "screen-name",
       "name": "Sanctions name screening",
-      "description": "Fuzzy name match against the sanctions lists loaded (OFAC SDN, UN, EU, UK); each response lists exactly which were checked.",
+      "description": "Fuzzy name match against the sanctions lists loaded (OFAC SDN, UN, EU, UK); each response lists exactly which were checked. Each hit includes the record ID, programmes, aliases, and a field-by-field comparison of the date of birth, nationality and type you send.",
       "method": "GET",
       "path": "/screen",
       "price": {
@@ -78,7 +78,7 @@
     {
       "id": "context",
       "name": "Field comparison",
-      "description": "Field-by-field comparison between a screened subject and the matched sanctions record from a prior /screen hit.",
+      "description": "Field-by-field comparison for the top /screen hit. Now included in every /screen hit's comparison; kept for existing integrations.",
       "method": "GET",
       "path": "/context",
       "price": {

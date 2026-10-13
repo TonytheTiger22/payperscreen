@@ -55,8 +55,9 @@ transaction. To see a real response first, call the free
 
 ## Endpoints (see /docs for full detail)
 
-- `GET /screen`, $0.02: fuzzy name match across the loaded sanctions lists (OFAC, UN, EU, UK)
-- `GET /context`, $0.05: field-by-field comparison for a prior hit
+- `GET /screen`, $0.02: fuzzy name match across the loaded sanctions lists (OFAC, UN, EU, UK); each hit
+  includes record ID, programmes, aliases, and a date-of-birth / nationality / type comparison against what you sent
+- `GET /context`, $0.05: the same comparison for the top hit (now included in /screen; kept for existing integrations)
 - `GET /screen-address`, $0.02: exact match against OFAC's sanctioned
   crypto-address list, plus Tether's USDT freeze list on Tron
   (on-chain, as `frozenByIssuer`) and a curated list of known hack
