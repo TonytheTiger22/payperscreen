@@ -393,7 +393,10 @@ async function siteWalletUsdc() {
 
 app.get("/api/admin/credits", async (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
-  const siteWallet = { address: signer.address, usdc: await siteWalletUsdc() };
+  const [usdc, topupPayTo] = await Promise.all([siteWalletUsdc(),
+    fetch(`${API}/topup-limits`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((j) => j.payTo || null).catch(() => null)]);
+  const siteWallet = { address: signer.address, usdc, topupPayTo,
+    topupsFundSiteWallet: topupPayTo ? topupPayTo.toLowerCase() === signer.address.toLowerCase() : null };
   const u = credits.toUsd;
   const wallets = credits.adminWallets().map((w) => ({ ...w,
     balance: u(w.balance), topups: u(w.topups), spent: u(w.spent), refunds: u(w.refunds) }));

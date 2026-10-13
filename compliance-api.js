@@ -35,6 +35,12 @@ const pool = new pg.Pool({
 // The price and the credited amount both come from this one function, so
 // what the payer authorises is exactly what gets credited.
 const TOPUP_MIN = Number(process.env.TOPUP_MIN_USD || 1.25);
+// Where prepaid top-ups are paid. Set it to the website's payment wallet
+// (BUYER_KEY's address): that wallet pays this API for every prepaid check,
+// so the customer's prepaid USDC should land there. Each check then moves 2¢
+// of it to SELLER as revenue. Falls back to SELLER (the old behaviour, which
+// leaves the site wallet to be funded by hand).
+const TOPUP_PAY_TO = process.env.TOPUP_PAY_TO || SELLER;
 const TOPUP_MAX = 250;
 function topupAmount(raw) {
   const v = Array.isArray(raw) ? raw[0] : raw;
@@ -232,7 +238,7 @@ app.use(paymentMiddleware(
     // only meaningful through payperscreen.com, which credits the payer's
     // balance after settlement (see /api/topup in payment-agent.js).
     "GET /topup": {
-      accepts: [{ scheme: "exact", network: NETWORK, payTo: SELLER,
+      accepts: [{ scheme: "exact", network: NETWORK, payTo: TOPUP_PAY_TO,
                   price: (ctx) => "$" + topupAmount(ctx.adapter.getQueryParam?.("amount")
                                         ?? ctx.adapter.getQueryParams?.()?.amount).toFixed(2) }],
       description: "Prepaid balance top-up (payperscreen.com)", mimeType: "application/json",
@@ -364,7 +370,7 @@ app.get("/openapi.json", (_, res) => res.json({
 app.get("/topup", (req, res) => {
   res.json({ ok: true, credited: topupAmount(req.query.amount), currency: "USDC" });
 });
-app.get("/topup-limits", (_, res) => res.json({ min: TOPUP_MIN, max: TOPUP_MAX }));
+app.get("/topup-limits", (_, res) => res.json({ min: TOPUP_MIN, max: TOPUP_MAX, payTo: TOPUP_PAY_TO }));
 
 const SUBJECTS = {
   clean: { name: "Maria Santos Oliveira", dob: "1981-04-12",

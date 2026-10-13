@@ -253,6 +253,9 @@ async function loadCredits(){
  $("credits").innerHTML=(r.topupsEnabled?'':'<div class="err">Top-ups are disabled on this deploy (DB_PATH not set).</div>')
   +(sw.address?'<div class="kv"><span>Site payment wallet (pays the API for prepaid checks)</span><b>'+scan(sw.address)+' '
     +(sw.usdc==null?'balance unavailable':money(sw.usdc)+' USDC on Base')+'</b></div>'
+    +(sw.topupsFundSiteWallet===false?'<div class="err">Top-ups are paid to '+esc(sw.topupPayTo)+', not to this wallet, so prepaid checks drain it. '
+      +'Fix: in Railway, on the API service, set TOPUP_PAY_TO = '+esc(sw.address)+'.</div>'
+      :(sw.topupsFundSiteWallet?'<div class="note">Top-ups are paid into this wallet, so prepaid checks are funded by the customers\' own top-ups.</div>':''))
     +(swLow?'<div class="err">Low: prepaid checks fail when this wallet can\'t pay. Send USDC on Base to '+esc(sw.address)
       +' (at least the outstanding balances, '+money(t.outstanding)+').</div>':''):'')
   +'<div class="kv"><span>Wallets</span><b>'+t.wallets+'</b></div>'
