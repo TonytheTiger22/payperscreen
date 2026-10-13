@@ -613,17 +613,10 @@ app.post("/api/screen-free", async (req, res) => {
                         record: audit.get(rec.reference), ledger: ledgerFor(req, screen.line) });
     }
 
-    // Wallet/balance mode: the field comparison is a second, separate 5¢ charge
-    // the visitor asks for themselves (POST /api/wallet-context), so stop here.
-    if (isWallet(req) || isBalance(req)) {
-      return res.json({ ok: true, outcome: "hit", screen: b, context: null,
-                        record: audit.get(rec.reference), ledger: ledgerFor(req, screen.line) });
-    }
-
-    const context = await buyQuery("/context", { name, dob, country, type },
-                                    "Field comparison", 0.05, req);
-    res.json({ ok: true, outcome: "hit", screen: b, context: context.body,
-               record: rec, ledger });
+    // Every hit already carries its date of birth / nationality / type
+    // comparison (part of the 2¢ /screen result), so there's no second call.
+    res.json({ ok: true, outcome: "hit", screen: b, context: null,
+               record: audit.get(rec.reference), ledger: ledgerFor(req, screen.line) });
 
   } catch (err) {
     if (relay(res, err)) return;

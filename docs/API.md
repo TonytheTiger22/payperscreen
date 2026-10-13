@@ -98,7 +98,12 @@ response names exactly what was checked).
   "hits": [{
     "list": "OFAC SDN", "score": 0.87, "name": "...", "id": "12345",
     "type": "Individual", "programs": ["RUSSIA-EO14024"],
-    "matchedOn": "alias \"...\"", "aliases": ["...", "..."]
+    "matchedOn": "alias \"...\"", "aliases": ["...", "..."],
+    "comparison": [
+      { "field": "Date of birth", "subject": "1965-01-22", "listed": "22 Jan 1965", "status": "match", "note": "exact match" },
+      { "field": "Nationality", "subject": "Russia", "listed": "Russian Federation", "status": "match", "note": "match" },
+      { "field": "Entity type", "subject": "Individual", "listed": "Individual", "status": "match", "note": "exact match" }
+    ]
   }],
   "note": "Possible matches for review, not a legal determination. ..."
 }
@@ -111,12 +116,19 @@ record of the check: it shows exactly which edition of each list was used.
 `hits` holds up to `limit` matches **per list** (one by default) scoring at
 least `threshold`, strongest first. Each gives the listed name, the list's own
 record ID (`id`), entity type, sanctions programmes, what matched (the primary
-name or a named alias) and up to ten aliases. `hitCount` is the number of
-matches, `listsWithHits` the number of lists with at least one. If
-`potentialMatch` is true, call `/context` with the subject's date of birth and
-nationality for the field-by-field comparison against the strongest match.
+name or a named alias), up to ten aliases, and a `comparison` of the `dob`,
+`country` and `type` you sent against the listed record (`match`, `partial`,
+`differs`, or `unknown` when either side has no data). Send `dob` and
+`country` to get the most out of it: it's the quickest way to rule out a
+namesake. `hitCount` is the number of
+matches, `listsWithHits` the number of lists with at least one. There's no
+need to call `/context` any more: its comparison is now part of every hit.
 
 ### `GET /context`: $0.05
+
+> **Now included in `/screen`.** Every `/screen` hit carries this comparison
+> in its `comparison` field at no extra cost. `/context` stays available for
+> existing integrations.
 
 Field-by-field comparison between what you submitted and the matched
 listed party. Only meaningful right after a `/screen` call that returned

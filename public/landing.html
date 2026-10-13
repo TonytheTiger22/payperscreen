@@ -184,7 +184,7 @@
    </div>
 
    <button class="go" id="go">Screen this subject</button>
-   <div class="price">Costs 2¢. Settles on-chain in about two seconds.</div>
+   <div class="price">Costs 2¢, including a date-of-birth and nationality check against every match (fill them in above). <span class="settle-note">Settles on-chain in about two seconds.</span></div>
    <div id="err" class="err"></div>
   </div>
 
@@ -309,6 +309,8 @@ function setMode(m){
  if(m!=="wallet") $("wallet-status").textContent="";
  $("credit-panel").style.display=m==="balance"?"":"none";
  if(m==="balance") renderCredits();
+ document.querySelectorAll(".settle-note").forEach(el=>el.textContent=m==="balance"
+   ?"Deducted from your prepaid balance, no wallet popup.":"Settles on-chain in about two seconds.");
 }
 async function refreshWalletStatus(){
  const w=window.PPSWallet; if(!w||!w.address){ $("wallet-status").textContent=""; return; }
@@ -512,7 +514,7 @@ $("go").onclick=async()=>{
 
   if(!r.ok){$("err").textContent=r.error||"Something went wrong.";return;}
 
-  const cost=r.outcome==="hit"&&r.context?"7¢":"2¢";
+  const cost="2¢";
   const ms=r.ledger.lines.slice(-1)[0]?.ms ?? 0;
 
   if(r.outcome==="clear"){
@@ -526,27 +528,16 @@ $("go").onclick=async()=>{
     +'backdated or altered after the fact. Try the sanctioned-name example above to see a match.</div>'
     +'</div>';
   } else {
-   $("result").innerHTML='<div class="banner warn">Possible match: '
-     +esc(r.screen.hits[0].name)+', '+esc(r.screen.hits[0].list)+', score '+r.screen.hits[0].score+'</div>'
-    +'<div class="card" id="ctx-slot">'+(r.context?contextHtml(r.context)
-      :'<button class="go" id="get-context" style="margin-top:4px">'+ctxLabel()+'</button>'
-       +'<div class="price">'+(PAY_MODE==="balance"?'Deducted from your prepaid balance.':'A second payment, signed in your wallet.')+' Compares what you entered against the listed party.</div>'
-       +'<div id="ctx-err" class="err"></div>')+'</div>'
+   const hits=r.screen.hits||[], nLists=r.screen.listsWithHits||new Set(hits.map(h=>h.list)).size;
+   $("result").innerHTML='<div class="banner warn">Possible match on '+nLists+' of '+r.screen.listsChecked.length+' list'
+     +(r.screen.listsChecked.length===1?'':'s')+': '+esc(hits[0].name)+'</div>'
+    +'<div class="card">'+hits.map(hitHtml).join('<div style="border-top:1px dashed var(--line,rgba(0,0,0,.08));margin:12px 0"></div>')
+    +'<div class="meta">Lists checked: '+esc(r.screen.listsChecked.join(", "))+'. A possible match is for your review, not a legal determination.</div></div>'
     +'<div class="card">'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
     +'<div class="kv"><span>Cost</span><b>'+cost+', '+ms+' ms</b></div>'
     +'<div class="meta">This is a match result and a field comparison only. What you do with it '
     +'(clear it, escalate it, hold a payment) is up to your own process.</div></div>';
-   const gc=$("get-context");
-   if(gc) gc.onclick=async()=>{
-    gc.disabled=true; gc.textContent=PAY_MODE==="balance"?"Working…":"Waiting for your wallet…"; $("ctx-err").textContent="";
-    try{
-     const c=await post("/api/wallet-context",{name, country:$("country").value.trim(),
-                                               dob:$("dob").value, type:$("type").value}, 0.05);
-     if(!c.ok) throw new Error(c.error||"Couldn't get the comparison.");
-     $("ctx-slot").innerHTML=contextHtml(c.context)+'<div class="card">'+txRow(c,"Payment (comparison)")+'</div>';
-    }catch(e){ $("ctx-err").textContent=String(e.message||e); gc.disabled=false; gc.innerHTML=ctxLabel(); }
-   };
   }
  } catch(e){
   $("err").textContent=(e.message||String(e));
@@ -554,6 +545,19 @@ $("go").onclick=async()=>{
   $("go").disabled=false; $("go").textContent="Screen this subject";
  }
 };
+
+// One sanctions hit, with everything the 2¢ check returns for it.
+function hitHtml(h){
+ const al=h.aliases||[], shown=al.slice(0,5);
+ return '<div class="kv"><span>'+esc(h.list)+'</span><b>'+esc(h.name)+'</b></div>'
+  +'<div class="kv"><span>Score</span><b>'+h.score+(h.matchedOn?' <span style="font-weight:400">('+esc(h.matchedOn)+')</span>':'')+'</b></div>'
+  +(h.id?'<div class="kv"><span>Record ID</span><b><code>'+esc(h.id)+'</code></b></div>':'')
+  +(h.type?'<div class="kv"><span>Type</span><b>'+esc(h.type)+'</b></div>':'')
+  +(h.programs&&h.programs.length?'<div class="kv"><span>Sanctions programmes</span><b>'+esc(h.programs.join(", "))+'</b></div>':'')
+  +(al.length?'<div class="kv"><span>Also known as</span><b style="font-weight:400">'+esc(shown.join("; "))
+     +(al.length>shown.length?' and '+(al.length-shown.length)+' more':'')+'</b></div>':'')
+  +(h.comparison&&h.comparison.length?comparisonTable(h.comparison):'');
+}
 
 $("go-address").onclick=async()=>{
  const address=$("address").value.trim();

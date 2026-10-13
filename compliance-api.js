@@ -48,9 +48,9 @@ function topupAmount(raw) {
 // directory says the same thing.
 const ROUTE_DESC = {
   "/screen":
-    "Sanctions screening for a person or company. Fuzzy name match (aliases and word order included) against the OFAC SDN, UN Security Council, EU and UK sanctions lists, refreshed daily. Each hit gives the score, listed name, record ID, sanctions programmes, aliases and what matched; optional threshold and limit settings; each list's publication date for your audit record. Free sample: GET /sample/screen.",
+    "Sanctions screening for a person or company. Fuzzy name match (aliases and word order included) against the OFAC SDN, UN Security Council, EU and UK sanctions lists, refreshed daily. Each hit gives the score, listed name, record ID, sanctions programmes, aliases and what matched, plus a field-by-field check of the date of birth, nationality and type you sent against the listed record; optional threshold and limit settings; each list's publication date for your audit record. Free sample: GET /sample/screen.",
   "/context":
-    "Follow-up to a /screen hit: is it really the same party? Compares the subject's date of birth, nationality and entity type with the matched sanctions record, field by field (match, partial, differs, or no data), with the list, program and record ID. Not charged if there's no hit to compare.",
+    "Field-by-field comparison (date of birth, nationality, entity type) for the strongest /screen hit. Now included in every /screen hit's 'comparison' at no extra cost; kept for existing integrations. Not charged if there's no hit to compare.",
   "/screen-address":
     "Crypto wallet screening before you pay or accept funds. Exact match against every OFAC-sanctioned address (all chains; a hit names the sanctioned party and SDN number), Tether's USDT freeze list on Tron, and wallets the FBI and victims' reports tied to major hacks (Bybit, Stake.com and more). Each result reported separately. Free sample: GET /sample/screen-address.",
   "/screen-email":
@@ -315,7 +315,7 @@ const DISCOVERY = [
     params: [["name", "Full name to screen", true], ["dob", "Date of birth, YYYY-MM-DD", false],
              ["country", "Nationality", false], ["type", "Individual or Entity", false],
              ["threshold", "Minimum match score 0.3 to 1, default 0.4", false], ["limit", "Matches per list 1 to 10, default 1", false]] },
-  { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit",
+  { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit (now included in /screen)",
     params: [["name", "Same name as the prior /screen hit", true], ["dob", "Subject's date of birth, YYYY-MM-DD", false],
              ["country", "Subject's nationality", false], ["type", "Individual or Entity", false]] },
   { path: "/screen-address", price: "0.02", summary: "Crypto address screening: OFAC sanctions, stablecoin freezes, known hack proceeds",
@@ -438,6 +438,38 @@ function compareField(subjectVal, listedVal) {
 }
 
 // Best match per loaded list, strongest first.
+// Country names come in many forms across lists ("RU", "Russian Federation",
+// "RUSSIA"). Reduce each to one comparable key before comparing.
+const REGION = new Intl.DisplayNames(["en"], { type: "region" });
+function countryKey(v) {
+  let x = String(v || "").trim();
+  if (/^[A-Za-z]{2}$/.test(x)) { try { x = REGION.of(x.toUpperCase()) || x; } catch {} }
+  return x.toLowerCase().replace(/[^a-z ]/g, " ")
+    .replace(/\b(the|federation|republic|of|kingdom|islamic|democratic|people s|peoples|state|states)\b/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+function compareCountry(subjectVal, listedVal) {
+  if (!subjectVal || !listedVal) return { status: "unknown", note: "insufficient data to compare" };
+  const listed = String(listedVal).split(/[;,]/).map(countryKey).filter(Boolean);
+  return listed.includes(countryKey(subjectVal))
+    ? { status: "match", note: listed.length > 1 ? "matches one of the listed nationalities" : "match" }
+    : { status: "differs", note: "differs" };
+}
+
+// Field-by-field comparison of what the caller submitted with one listed
+// record: date of birth, nationality and entity type.
+function compareWithListed(subject, row) {
+  const listedType = titleCase(row.entity_type);
+  const dob = compareDob(subject.dob, row.dob);
+  const nat = compareCountry(subject.country, row.nationality);
+  const typ = compareField(subject.type, listedType);
+  return [
+    { field: "Date of birth", subject: subject.dob || "not provided", listed: row.dob || "not in source data", ...dob },
+    { field: "Nationality", subject: subject.country || "not provided", listed: row.nationality || "not in source data", ...nat },
+    { field: "Entity type", subject: subject.type, listed: listedType || "unknown", ...typ },
+  ];
+}
+
 // Best matches per loaded list, strongest first: `perList` per list (1 by
 // default), each entity once (its best-scoring primary name or alias).
 async function matchesByList(name, sources, perList = 1) {
@@ -686,6 +718,7 @@ async function screenHandler(req, res) {
     programs: m.program ? m.program.split(",").map((x) => x.trim()).filter(Boolean) : [],
     matchedOn: m.basis === "alias match" ? `alias "${m.matched_alias}"` : "primary name",
     aliases: (aliases[m.id] || []).filter((a) => a !== m.name),
+    comparison: compareWithListed(subject, m),
   }));
 
   res.json({
@@ -698,8 +731,8 @@ async function screenHandler(req, res) {
     hitCount: hits.length,
     listsWithHits: new Set(hits.map((h) => h.list)).size,
     hits,
-    note: "Possible matches for review, not a legal determination. Call /context with the subject's date of birth " +
-          "and nationality to compare them with the strongest match.",
+    note: "Possible matches for review, not a legal determination. Each hit's 'comparison' checks the date of birth, " +
+          "nationality and type you sent against the listed record; send dob and country to use it.",
   });
 }
 app.get("/screen", screenHandler);
@@ -738,26 +771,11 @@ async function contextHandler(req, res) {
   // 404, not 200: x402 only settles successful responses, so nobody pays 5¢ for "nothing to compare".
   if (!top || score < HIT_THRESHOLD) return res.status(404).json({ error: "No alert to contextualise" });
 
-  const listedType = titleCase(top.entity_type);
-  const dobCmp = compareDob(subject.dob, top.dob);
-  const natCmp = compareField(subject.country, top.nationality);
-  const typeCmp = compareField(subject.type, listedType);
-
   res.json({
     fields: [
       { field: "Name", subject: subject.name, listed: top.name,
         status: "match", note: "matched on " + top.basis },
-      { field: "Date of birth",
-        subject: subject.dob || "not provided",
-        listed: top.dob || "not in source data",
-        status: dobCmp.status, note: dobCmp.note },
-      { field: "Nationality",
-        subject: subject.country || "not provided",
-        listed: top.nationality || "not in source data",
-        status: natCmp.status, note: natCmp.note },
-      { field: "Entity type",
-        subject: subject.type, listed: listedType || "unknown",
-        status: typeCmp.status, note: typeCmp.note },
+      ...compareWithListed(subject, top),
     ],
     meta: {
       list: LIST_LABELS[top.source], listVersion: loadedCache.meta[top.source]?.list_version ?? null, program: top.program,
