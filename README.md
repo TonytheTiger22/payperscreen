@@ -59,6 +59,7 @@ npm start                     # website
 | `ETH_RPC_URL`, `BASE_RPC_URL`, `ARB_RPC_URL`, `OP_RPC_URL` | optional | Node URLs that serve historical logs (e.g. Infura). Each one set switches on freeze coverage for that chain (USDT and USDC on Ethereum, USDC on Base, Arbitrum, Optimism); unset chains are skipped and not claimed |
 | `PUBLIC_API_URL` | optional | Public URL reported to x402 directories |
 | `TOPUP_MIN_USD` | optional | Minimum prepaid top-up (default 1.25) |
+| `TOPUP_PAY_TO` | recommended | Address that receives prepaid top-ups. Set it to the website's payment wallet (the address of `BUYER_KEY`), so customers' prepaid USDC funds their own checks; defaults to `SELLER_ADDRESS` |
 | `SOLANA_PAY_TO` | optional | A Solana address to receive USDC; when set, every paid route also accepts payment on Solana |
 
 **Site settings**
