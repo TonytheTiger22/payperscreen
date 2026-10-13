@@ -1,6 +1,6 @@
 # PayPerScreen
 
-Pay-per-check compliance screening over [x402](https://x402.org). Sanctions names, crypto wallets, emails and IP addresses, paid per request in USDC on Base. No account, no API key, no contract.
+Pay-per-check compliance screening over [x402](https://x402.org). Sanctions names, crypto wallets, emails and IP addresses, paid per request in USDC on Base, Polygon or Arbitrum. No account, no API key, no contract.
 
 - **Hosted version:** [payperscreen.com](https://payperscreen.com) (try it by hand at [/try](https://payperscreen.com/try))
 - **API:** `https://api.payperscreen.com` ([docs](https://payperscreen.com/docs), [OpenAPI](https://api.payperscreen.com/openapi.json))
@@ -59,6 +59,7 @@ npm start                     # website
 | `ETH_RPC_URL`, `BASE_RPC_URL`, `ARB_RPC_URL`, `OP_RPC_URL` | optional | Node URLs that serve historical logs (e.g. Infura). Each one set switches on freeze coverage for that chain (USDT and USDC on Ethereum, USDC on Base, Arbitrum, Optimism); unset chains are skipped and not claimed |
 | `PUBLIC_API_URL` | optional | Public URL reported to x402 directories |
 | `TOPUP_MIN_USD` | optional | Minimum prepaid top-up (default 1.25) |
+| `SOLANA_PAY_TO` | optional | A Solana address to receive USDC; when set, every paid route also accepts payment on Solana |
 
 **Site settings**
 

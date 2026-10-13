@@ -3,7 +3,8 @@
 > Pay-per-call sanctions, crypto-wallet, email, and IP risk
 > screening API, priced in USDC and paid over [x402](https://x402.org): no
 > account, no API key, no subscription. Every request is authenticated by a
-> signed on-chain payment at the moment it's made, on Base mainnet. Built
+> signed on-chain payment at the moment it's made, in USDC on Base, Polygon
+> or Arbitrum. Built
 > around the assumption that most real callers are agents, not humans
 > clicking a button.
 
@@ -43,11 +44,14 @@ All endpoints below are served from `https://api.payperscreen.com`
 ## How payment works
 
 No API key, no signup. A request with no payment gets back `402 Payment
-Required` naming the exact price, network (`eip155:8453`, Base mainnet),
-and asset (USDC). The caller signs a gasless EIP-3009
+Required` naming the exact price and asset (USDC) for each network you can
+pay on: Base (`eip155:8453`), Polygon (`eip155:137`) or Arbitrum
+(`eip155:42161`). The caller signs a gasless EIP-3009
 `transferWithAuthorization` and retries with it attached; x402-aware HTTP
 clients (e.g. `@x402/fetch`) do this automatically. You only need USDC on
-Base: no ETH for gas, since the facilitator submits the transaction.
+one of those chains: no gas token, since the facilitator submits the
+transaction. To see a real response first, call the free
+`GET https://api.payperscreen.com/sample/screen` or `/sample/screen-address`.
 
 ## Endpoints (see /docs for full detail)
 

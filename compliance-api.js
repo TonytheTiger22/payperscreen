@@ -2,6 +2,7 @@ import express from "express";
 import pg from "pg";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { createCdpFacilitatorClient } from "@coinbase/cdp-sdk/x402";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import { runEmailChecks } from "./checks/email-trust.js";
@@ -47,19 +48,32 @@ function topupAmount(raw) {
 // directory says the same thing.
 const ROUTE_DESC = {
   "/screen":
-    "Sanctions screening for a person or company. Fuzzy name match (aliases and word order included) against the OFAC SDN, UN Security Council, EU and UK sanctions lists, refreshed daily. Returns the best match per list with a score, plus each list's publication date for your audit record.",
+    "Sanctions screening for a person or company. Fuzzy name match (aliases and word order included) against the OFAC SDN, UN Security Council, EU and UK sanctions lists, refreshed daily. Each hit gives the score, listed name, record ID, sanctions programmes, aliases and what matched; optional threshold and limit settings; each list's publication date for your audit record. Free sample: GET /sample/screen.",
   "/context":
     "Follow-up to a /screen hit: is it really the same party? Compares the subject's date of birth, nationality and entity type with the matched sanctions record, field by field (match, partial, differs, or no data), with the list, program and record ID. Not charged if there's no hit to compare.",
   "/screen-address":
-    "Crypto wallet screening before you pay or accept funds. Exact match against every OFAC-sanctioned address (all chains; a hit names the sanctioned party and SDN number), Tether's USDT freeze list on Tron, and wallets the FBI and victims' reports tied to major hacks (Bybit, Stake.com and more). Each result reported separately.",
+    "Crypto wallet screening before you pay or accept funds. Exact match against every OFAC-sanctioned address (all chains; a hit names the sanctioned party and SDN number), Tether's USDT freeze list on Tron, and wallets the FBI and victims' reports tied to major hacks (Bybit, Stake.com and more). Each result reported separately. Free sample: GET /sample/screen-address.",
   "/screen-email":
     "Email risk check for signups and payouts. Ten deterministic signals, no AI scoring: mail server (MX), disposable or throwaway domain, domain age, certificate history, spam blocklists, typo-squats of major providers, role accounts and a mailbox probe. Returns a low, medium or high risk level with every signal explained.",
   "/screen-ip":
     "IP risk check (beta) for logins and checkouts: is a public IPv4 address on the Spamhaus ZEN blocklist (spam, botnets, hijacked networks) or a Tor exit node? Includes the network owner. Returns a low, medium or high risk level.",
 };
 
+// Networks a buyer can pay on, all USDC via the CDP facilitator. Base stays
+// first: clients take the first option they support, and the website pays
+// on Base. Polygon and Arbitrum pay the same EVM address. Solana needs its
+// own address, so it's offered only when SOLANA_PAY_TO is set.
+const EVM_NETWORKS = [NETWORK, "eip155:137", "eip155:42161"];   // Base, Polygon, Arbitrum
+const SOLANA_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+const SOLANA_PAY_TO = process.env.SOLANA_PAY_TO || null;
+const acceptsFor = (price) => [
+  ...EVM_NETWORKS.map((network) => ({ scheme: "exact", price, network, payTo: SELLER })),
+  ...(SOLANA_PAY_TO ? [{ scheme: "exact", price, network: SOLANA_NETWORK, payTo: SOLANA_PAY_TO }] : []),
+];
+const PAY_NETWORKS = ["Base", "Polygon", "Arbitrum", ...(SOLANA_PAY_TO ? ["Solana"] : [])];
+
 const priced = (price, description, extras = {}) => ({
-  accepts: [{ scheme: "exact", price, network: NETWORK, payTo: SELLER }],
+  accepts: acceptsFor(price),
   description, mimeType: "application/json",
   serviceName: "PayPerScreen",
   iconUrl: "https://payperscreen.com/icon-512.png",
@@ -117,6 +131,8 @@ app.use(paymentMiddleware(
             dob: { type: "string", description: "Date of birth, YYYY-MM-DD (optional; used by /context)" },
             country: { type: "string", description: "Nationality or country (optional; used by /context)" },
             type: { type: "string", enum: ["Individual", "Entity"], description: "Individual (default) or Entity" },
+            threshold: { type: "number", minimum: 0.3, maximum: 1, description: "Minimum match score, default 0.4. Higher means fewer, closer matches" },
+            limit: { type: "integer", minimum: 1, maximum: 10, description: "Matches per list, default 1" },
           },
           required: ["name"],
         },
@@ -125,8 +141,10 @@ app.use(paymentMiddleware(
             subject: { name: "Vladimir Putin", type: "Individual" },
             listsChecked: ["OFAC SDN", "UN Consolidated", "EU Consolidated", "UK Sanctions List"],
             listVersions: [{ list: "OFAC SDN", version: "2026-10-09" }],
+            potentialMatch: true,
             hitCount: 1,
-            hits: [{ list: "OFAC SDN", score: 1, name: "Vladimir Vladimirovich PUTIN" }],
+            hits: [{ list: "OFAC SDN", score: 1, name: "Vladimir Vladimirovich PUTIN", type: "Individual",
+                     programs: ["RUSSIA-EO14024"], matchedOn: "primary name", aliases: [] }],
           },
         },
       }),
@@ -222,6 +240,9 @@ app.use(paymentMiddleware(
   },
   new x402ResourceServer(facilitator)
     .register(NETWORK, new ExactEvmScheme())
+    .register("eip155:137", new ExactEvmScheme())
+    .register("eip155:42161", new ExactEvmScheme())
+    .register(SOLANA_NETWORK, new ExactSvmScheme())
     .registerExtension(bazaarResourceServerExtension)
     .onAfterSettle((ctx) => recordSettlement(ctx).catch((e) => console.error("recordSettlement:", String(e.message || e)))),
 ));
@@ -233,6 +254,34 @@ const ICONS = { "/favicon.ico": "favicon.ico", "/favicon-32.png": "favicon-32.pn
 for (const [route, file] of Object.entries(ICONS))
   app.get(route, (_, res) => res.set("Cache-Control", "public, max-age=86400")
     .sendFile(file, { root: new URL("./public/", import.meta.url).pathname }));
+
+// ---- Free samples ------------------------------------------------------------
+// A real, live result for one fixed example per check, free, so an agent or
+// developer can see the exact response before paying. The input can't be
+// changed (that's what the paid route is for); results are cached for an hour.
+const SAMPLES = {
+  "/sample/screen": { paid: "/screen", handler: (...a) => screenHandler(...a), query: { name: "Vladimir Putin", country: "Russia", type: "Individual" } },
+  "/sample/screen-address": { paid: "/screen-address", handler: (...a) => screenAddressHandler(...a), query: { address: "0x8576aCC5C05D6Ce88f4e49bf65BdF0C62F91353C" } },
+};
+const sampleCache = new Map();
+for (const [route, sample] of Object.entries(SAMPLES)) {
+  app.get(route, async (req, res) => {
+    const hit = sampleCache.get(route);
+    if (hit && Date.now() - hit.at < 3600_000) return res.json(hit.body);
+    try {
+      // Run the paid route's own handler with the fixed input, capturing its JSON.
+      const out = await new Promise((resolve, reject) => {
+        const fake = { statusCode: 200, status(c) { this.statusCode = c; return this; },
+                       json(b) { this.statusCode < 400 ? resolve(b) : reject(new Error(b?.error || `HTTP ${this.statusCode}`)); } };
+        Promise.resolve(sample.handler({ query: { ...sample.query } }, fake)).catch(reject);
+      });
+      const body = { sample: true, note: `Free sample with a fixed input. For your own input, call GET ${PUBLIC_API}${sample.paid} (paid via x402).`,
+                     request: { method: "GET", path: sample.paid, query: sample.query }, response: out };
+      sampleCache.set(route, { at: Date.now(), body });
+      res.json(body);
+    } catch (e) { res.status(503).json({ error: "Sample temporarily unavailable", detail: String(e.message || e) }); }
+  });
+}
 
 // Crawlers and agent fetchers check robots.txt first; without one some of
 // them refuse the host outright. The paid routes are still paywalled by x402.
@@ -250,7 +299,10 @@ app.get("/", (_, res) => res.json({
   lists: "https://payperscreen.com/lists",
   openapi: PUBLIC_API + "/openapi.json",
   x402Discovery: PUBLIC_API + "/.well-known/x402",
-  payment: { protocol: "x402", network: NETWORK, asset: "USDC", payTo: SELLER },
+  payment: { protocol: "x402", asset: "USDC", networks: PAY_NETWORKS, payTo: SELLER,
+             ...(SOLANA_PAY_TO ? { payToSolana: SOLANA_PAY_TO } : {}) },
+  freeSamples: { "GET /sample/screen": "Live /screen result for a fixed example name",
+                 "GET /sample/screen-address": "Live /screen-address result for a fixed sanctioned wallet" },
   endpoints: {
     "GET /screen": "$0.02", "GET /context": "$0.05", "GET /screen-address": "$0.02",
     "GET /screen-email": "$0.02", "GET /screen-ip": "$0.01",
@@ -261,7 +313,8 @@ app.get("/", (_, res) => res.json({
 const DISCOVERY = [
   { path: "/screen", price: "0.02", summary: "Sanctions screening (OFAC, UN, EU, UK)",
     params: [["name", "Full name to screen", true], ["dob", "Date of birth, YYYY-MM-DD", false],
-             ["country", "Nationality", false], ["type", "Individual or Entity", false]] },
+             ["country", "Nationality", false], ["type", "Individual or Entity", false],
+             ["threshold", "Minimum match score 0.3 to 1, default 0.4", false], ["limit", "Matches per list 1 to 10, default 1", false]] },
   { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit",
     params: [["name", "Same name as the prior /screen hit", true], ["dob", "Subject's date of birth, YYYY-MM-DD", false],
              ["country", "Subject's nationality", false], ["type", "Individual or Entity", false]] },
@@ -282,7 +335,7 @@ app.get("/openapi.json", (_, res) => res.json({
   openapi: "3.1.0",
   info: {
     title: "PayPerScreen API", version: "1.0.0",
-    description: "Pay-per-call compliance screening for agents and fintech teams: sanctions names, crypto wallets, emails and IPs. Paid per request in USDC on Base via x402. No account or API key.",
+    description: "Pay-per-call compliance screening for agents and fintech teams: sanctions names, crypto wallets, emails and IPs. Paid per request in USDC via x402 (Base, Polygon or Arbitrum). No account or API key. Free samples: GET /sample/screen and /sample/screen-address.",
     contact: { name: "PayPerScreen", url: "https://payperscreen.com", email: process.env.CONTACT_EMAIL || "hello@albatrossletter.com" },
   },
   servers: [{ url: PUBLIC_API }],
@@ -293,7 +346,10 @@ app.get("/openapi.json", (_, res) => res.json({
     description: ROUTE_DESC[d.path],
     tags: ["compliance"],
     parameters: d.params.map(([name, description, required]) =>
-      ({ name, in: "query", required, description, schema: { type: "string" } })),
+      ({ name, in: "query", required, description,
+         schema: name === "threshold" ? { type: "number", minimum: 0.3, maximum: 1, default: 0.4 }
+               : name === "limit" ? { type: "integer", minimum: 1, maximum: 10, default: 1 }
+               : { type: "string" } })),
     "x-payment-info": {
       protocols: ["x402"], pricingMode: "fixed", price: d.price, currency: "USD",
       asset: "USDC", network: NETWORK, payTo: SELLER,
@@ -382,27 +438,49 @@ function compareField(subjectVal, listedVal) {
 }
 
 // Best match per loaded list, strongest first.
-async function matchesByList(name, sources) {
+// Best matches per loaded list, strongest first: `perList` per list (1 by
+// default), each entity once (its best-scoring primary name or alias).
+async function matchesByList(name, sources, perList = 1) {
   const { rows } = await pool.query(
     `WITH candidates AS (
        SELECT e.id, e.source, e.canonical_name AS name, e.entity_type, e.dob, e.nationality,
-              e.program, e.uid, similarity(e.canonical_name, $1) AS score, 'primary name' AS basis
+              e.program, e.uid, similarity(e.canonical_name, $1) AS score, 'primary name' AS basis,
+              NULL::text AS matched_alias
        FROM entities e
        WHERE e.source = ANY($2) AND e.canonical_name % $1
        UNION ALL
        SELECT e.id, e.source, e.canonical_name AS name, e.entity_type, e.dob, e.nationality,
-              e.program, e.uid, similarity(a.alias_name, $1) AS score, 'alias match' AS basis
+              e.program, e.uid, similarity(a.alias_name, $1) AS score, 'alias match' AS basis,
+              a.alias_name AS matched_alias
        FROM entity_aliases a JOIN entities e ON e.id = a.entity_id
        WHERE e.source = ANY($2) AND a.alias_name % $1
+     ), best_per_entity AS (
+       SELECT DISTINCT ON (id) * FROM candidates ORDER BY id, score DESC
+     ), ranked AS (
+       SELECT *, row_number() OVER (PARTITION BY source ORDER BY score DESC) AS rn FROM best_per_entity
      )
-     SELECT DISTINCT ON (source) * FROM candidates ORDER BY source, score DESC`,
-    [name, sources]
+     SELECT * FROM ranked WHERE rn <= $3`,
+    [name, sources, perList]
   );
   return rows.sort((a, b) => b.score - a.score);
 }
 
+// Up to `max` aliases per entity, for showing alongside a hit.
+async function aliasesFor(ids, max = 10) {
+  if (!ids.length) return {};
+  const { rows } = await pool.query(
+    `SELECT entity_id, (array_agg(alias_name ORDER BY alias_name))[1:$2] AS aliases
+     FROM entity_aliases WHERE entity_id = ANY($1) GROUP BY entity_id`, [ids, max]);
+  return Object.fromEntries(rows.map((r) => [r.entity_id, r.aliases]));
+}
+
+// Optional tuning, clamped: threshold 0.3 to 1 (0.3 is the trigram index's
+// floor), limit 1 to 10 matches per list.
+const num = (v, def, lo, hi) => { const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : def; };
+
 async function bestMatch(name, sources) {
-  return (await matchesByList(name, sources))[0] || null;
+  return (await matchesByList(name, sources, 1))[0] || null;
 }
 
 // Exact-match lookup for sanctioned crypto wallet addresses — a different
@@ -509,7 +587,7 @@ app.get("/lists-meta", async (req, res) => {
   });
 });
 
-app.get("/screen-address", async (req, res) => {
+async function screenAddressHandler(req, res) {
   const address = (req.query.address || "").trim();
   if (!address) return res.status(400).json({ error: "address is required" });
 
@@ -546,7 +624,8 @@ app.get("/screen-address", async (req, res) => {
     note: "Exact address match only. A sanctions match names the listed party (listedParty, sdnUid) " +
           "as OFAC records it. \"Not sanctioned\" reflects this list only, not a guarantee the address is clean.",
   });
-});
+}
+app.get("/screen-address", screenAddressHandler);
 
 app.get("/screen-email", async (req, res) => {
   const email = (req.query.email || "").trim();
@@ -570,7 +649,7 @@ app.get("/screen-ip", async (req, res) => {
   }
 });
 
-app.get("/screen", async (req, res) => {
+async function screenHandler(req, res) {
   if (req.query.id) {
     const s = SUBJECTS[req.query.id] || SUBJECTS.clean;
     return res.json({
@@ -590,20 +669,38 @@ app.get("/screen", async (req, res) => {
   };
 
   if (!subject.name) return res.status(400).json({ error: "name is required" });
+  const threshold = num(req.query.threshold, HIT_THRESHOLD, 0.3, 1);
+  const limit = Math.round(num(req.query.limit, 1, 1, 10));
   const sources = await loadedSources();
-  const hits = (await matchesByList(subject.name, sources))
-    .map((m) => ({ list: LIST_LABELS[m.source], score: Math.round(m.score * 100) / 100, name: m.name }))
-    .filter((h) => h.score >= HIT_THRESHOLD);
+  const found = (await matchesByList(subject.name, sources, limit))
+    .filter((m) => Math.round(m.score * 100) / 100 >= threshold);
+  const aliases = await aliasesFor(found.map((m) => m.id));
+  const hits = found.map((m) => ({
+    list: LIST_LABELS[m.source],
+    score: Math.round(m.score * 100) / 100,
+    name: m.name,
+    id: m.uid,
+    type: titleCase(m.entity_type) || null,
+    programs: m.program ? m.program.split(",").map((x) => x.trim()).filter(Boolean) : [],
+    matchedOn: m.basis === "alias match" ? `alias "${m.matched_alias}"` : "primary name",
+    aliases: (aliases[m.id] || []).filter((a) => a !== m.name),
+  }));
 
   res.json({
     subject,
     listsChecked: sources.map((x) => LIST_LABELS[x]),
     listVersions: versionsFor(sources),
     screenedAt: new Date().toISOString(),
+    settings: { threshold, limit },
+    potentialMatch: hits.length > 0,
     hitCount: hits.length,
+    listsWithHits: new Set(hits.map((h) => h.list)).size,
     hits,
+    note: "Possible matches for review, not a legal determination. Call /context with the subject's date of birth " +
+          "and nationality to compare them with the strongest match.",
   });
-});
+}
+app.get("/screen", screenHandler);
 
 app.get("/context", async (req, res) => {
   if (req.query.id) {
