@@ -226,6 +226,14 @@ app.use(paymentMiddleware(
     .onAfterSettle((ctx) => recordSettlement(ctx).catch((e) => console.error("recordSettlement:", String(e.message || e)))),
 ));
 
+// Icons for directories that show the API host's favicon (x402scan does).
+// Same files as the website; Coinbase uses iconUrl from the route config.
+const ICONS = { "/favicon.ico": "favicon.ico", "/favicon-32.png": "favicon-32.png",
+  "/apple-touch-icon.png": "apple-touch-icon.png", "/icon-192.png": "icon-192.png", "/icon-512.png": "icon-512.png" };
+for (const [route, file] of Object.entries(ICONS))
+  app.get(route, (_, res) => res.set("Cache-Control", "public, max-age=86400")
+    .sendFile(file, { root: new URL("./public/", import.meta.url).pathname }));
+
 // Crawlers and agent fetchers check robots.txt first; without one some of
 // them refuse the host outright. The paid routes are still paywalled by x402.
 app.get("/robots.txt", (_, res) => res.type("text/plain").send("User-agent: *\nAllow: /\n"));
