@@ -102,6 +102,25 @@ async function buyQuery(path, params, label, price, req) {
   return siteBuy(path, params, label, price);
 }
 
+// Calls the API's internal route for a prepaid-balance check (see
+// compliance-api.js). No on-chain payment: the balance was already charged.
+const INTERNAL_KEY = (process.env.INTERNAL_API_KEY || "").length >= 32 ? process.env.INTERNAL_API_KEY : "";
+async function internalBuy(path, params, label, price) {
+  const t0 = Date.now();
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch(`${API}/internal${path}?${qs}`,
+    { headers: { "x-internal-key": INTERNAL_KEY }, signal: AbortSignal.timeout(30000) });
+  const body = await r.json().catch(() => ({}));
+  if (r.status === 404 && body?.error === "Not found")
+    throw new Error("Prepaid checks are misconfigured (INTERNAL_API_KEY differs between the website and the API). Your balance wasn't charged.");
+  if (!r.ok) throw new Error(body?.error || `The check failed (HTTP ${r.status}). Your balance wasn't charged.`);
+  const line = { label, price, ms: Date.now() - t0, tx: null,
+                 at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) };
+  ledger.spent = +(ledger.spent + price).toFixed(4);
+  ledger.lines.push(line);
+  return { body, line };
+}
+
 // Plain-language messages for why the site wallet's payment was refused.
 // The visitor's prepaid balance is refunded in every case (see balanceBuy).
 const SITE_PAY_ERRORS = {
@@ -144,7 +163,11 @@ async function balanceBuy(req, path, params, label, price) {
   if (!address) { const e = new Error("Sign in with your wallet to use your prepaid balance."); e.code = "NO_CREDIT_SESSION"; throw e; }
   const chargeId = credits.charge(address, credits.toMicros(price), label);
   try {
-    const out = await siteBuy(path, params, label, price);   // site-wallet path
+    // The customer paid for this at top-up; the check just comes off their
+    // balance. With INTERNAL_API_KEY set, the API is asked directly (no second
+    // on-chain payment). Without it, fall back to paying from the site wallet.
+    const out = INTERNAL_KEY ? await internalBuy(path, params, label, price)
+                             : await siteBuy(path, params, label, price);
     out.line = { ...out.line, payer: "prepaid balance" };
     return out;
   } catch (err) {
@@ -393,7 +416,7 @@ async function siteWalletUsdc() {
 
 app.get("/api/admin/credits", async (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ ok: false, error: "Admin login required" });
-  const siteWallet = { address: signer.address, usdc: await siteWalletUsdc() };
+  const siteWallet = { address: signer.address, usdc: await siteWalletUsdc(), prepaidDirect: !!INTERNAL_KEY };
   const u = credits.toUsd;
   const wallets = credits.adminWallets().map((w) => ({ ...w,
     balance: u(w.balance), topups: u(w.topups), spent: u(w.spent), refunds: u(w.refunds) }));

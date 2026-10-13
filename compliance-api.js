@@ -627,7 +627,7 @@ async function screenAddressHandler(req, res) {
 }
 app.get("/screen-address", screenAddressHandler);
 
-app.get("/screen-email", async (req, res) => {
+async function screenEmailHandler(req, res) {
   const email = (req.query.email || "").trim();
   if (!email) return res.status(400).json({ error: "email is required" });
   try {
@@ -636,9 +636,10 @@ app.get("/screen-email", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Email check failed", detail: String(err?.message || err) });
   }
-});
+}
+app.get("/screen-email", screenEmailHandler);
 
-app.get("/screen-ip", async (req, res) => {
+async function screenIpHandler(req, res) {
   const ip = (req.query.ip || "").trim();
   if (!ip) return res.status(400).json({ error: "ip is required" });
   try {
@@ -647,7 +648,8 @@ app.get("/screen-ip", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "IP check failed", detail: String(err?.message || err) });
   }
-});
+}
+app.get("/screen-ip", screenIpHandler);
 
 async function screenHandler(req, res) {
   if (req.query.id) {
@@ -702,7 +704,7 @@ async function screenHandler(req, res) {
 }
 app.get("/screen", screenHandler);
 
-app.get("/context", async (req, res) => {
+async function contextHandler(req, res) {
   if (req.query.id) {
     const s = SUBJECTS[req.query.id];
     if (!s || !s.hits.length) return res.status(404).json({ error: "No alert to contextualise" });
@@ -762,7 +764,27 @@ app.get("/context", async (req, res) => {
       uid: top.uid, score, matchedOn: top.basis,
     },
   });
-});
+}
+app.get("/context", contextHandler);
+
+// ---- Internal access for prepaid-balance checks ----------------------------
+// payment-agent.js deducts a prepaid check from the customer's balance (the
+// USDC was already paid at top-up), then asks for the result here with a
+// shared secret instead of making a second on-chain payment. Same handlers
+// as the paid routes. Disabled (404) unless INTERNAL_API_KEY is set to at
+// least 32 characters on both services.
+import { timingSafeEqual } from "crypto";
+const INTERNAL_KEY = process.env.INTERNAL_API_KEY || "";
+const INTERNAL_HANDLERS = { "/screen": screenHandler, "/context": contextHandler, "/screen-address": screenAddressHandler,
+                            "/screen-email": screenEmailHandler, "/screen-ip": screenIpHandler };
+const keyOk = (given) => {
+  if (INTERNAL_KEY.length < 32 || typeof given !== "string") return false;
+  const a = Buffer.from(given), b = Buffer.from(INTERNAL_KEY);
+  return a.length === b.length && timingSafeEqual(a, b);
+};
+for (const [path, handler] of Object.entries(INTERNAL_HANDLERS))
+  app.get("/internal" + path, (req, res) => keyOk(req.get("x-internal-key"))
+    ? handler(req, res) : res.status(404).json({ error: "Not found" }));
 
 // ---- List refresh, with a status record per list --------------------------
 // Every refresh attempt is written to refresh_status (survives deploys), so a

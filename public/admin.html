@@ -249,12 +249,13 @@ async function loadCredits(){
  const t=r.totals;
  const KIND={topup:"Top-up",charge:"Check",refund:"Refund"};
  const sw=r.siteWallet||{};
- const swLow=sw.usdc!=null&&sw.usdc<Math.max(1,t.outstanding);
+ const swLow=sw.usdc!=null&&sw.usdc<1;
  $("credits").innerHTML=(r.topupsEnabled?'':'<div class="err">Top-ups are disabled on this deploy (DB_PATH not set).</div>')
-  +(sw.address?'<div class="kv"><span>Site payment wallet (pays the API for prepaid checks)</span><b>'+scan(sw.address)+' '
+  +(sw.prepaidDirect===false?'<div class="err">Prepaid checks are still paid on-chain from the site wallet below, so they fail when it runs dry. '
+     +'Fix: set the same INTERNAL_API_KEY (32+ random characters) on both Railway services; checks then come straight off customers\' balances.</div>':'')
+  +(sw.address?'<div class="kv"><span>Site wallet ('+(sw.prepaidDirect?'only used for admin test checks':'pays the API for prepaid checks')+')</span><b>'+scan(sw.address)+' '
     +(sw.usdc==null?'balance unavailable':money(sw.usdc)+' USDC on Base')+'</b></div>'
-    +(swLow?'<div class="err">Low: prepaid checks fail when this wallet can\'t pay. Send USDC on Base to '+esc(sw.address)
-      +' (at least the outstanding balances, '+money(t.outstanding)+').</div>':''):'')
+    +(swLow&&!sw.prepaidDirect?'<div class="err">Low: prepaid checks fail when this wallet can\'t pay. Send USDC on Base to '+esc(sw.address)+'.</div>':''):'')
   +'<div class="kv"><span>Wallets</span><b>'+t.wallets+'</b></div>'
   +'<div class="kv"><span>Topped up (all time)</span><b>'+money(t.topups)+'</b></div>'
   +'<div class="kv"><span>Spent on checks</span><b>'+money(t.spent)+' across '+t.checks+' checks</b></div>'
