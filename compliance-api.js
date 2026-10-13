@@ -42,10 +42,27 @@ function topupAmount(raw) {
   return Math.min(n, TOPUP_MAX);
 }
 
+// One description per paid route, used in the x402 payment metadata (what
+// Coinbase Bazaar / Agentic Market show) and in /openapi.json, so every
+// directory says the same thing.
+const ROUTE_DESC = {
+  "/screen":
+    "Sanctions screening for a person or company. Fuzzy name match (aliases and word order included) against the OFAC SDN, UN Security Council, EU and UK sanctions lists, refreshed daily. Returns the best match per list with a score, plus each list's publication date for your audit record.",
+  "/context":
+    "Follow-up to a /screen hit: is it really the same party? Compares the subject's date of birth, nationality and entity type with the matched sanctions record, field by field (match, partial, differs, or no data), with the list, program and record ID. Not charged if there's no hit to compare.",
+  "/screen-address":
+    "Crypto wallet screening before you pay or accept funds. Exact match against every OFAC-sanctioned address (all chains; a hit names the sanctioned party and SDN number), Tether's USDT freeze list on Tron, and wallets the FBI and victims' reports tied to major hacks (Bybit, Stake.com and more). Each result reported separately.",
+  "/screen-email":
+    "Email risk check for signups and payouts. Ten deterministic signals, no AI scoring: mail server (MX), disposable or throwaway domain, domain age, certificate history, spam blocklists, typo-squats of major providers, role accounts and a mailbox probe. Returns a low, medium or high risk level with every signal explained.",
+  "/screen-ip":
+    "IP risk check (beta) for logins and checkouts: is a public IPv4 address on the Spamhaus ZEN blocklist (spam, botnets, hijacked networks) or a Tor exit node? Includes the network owner. Returns a low, medium or high risk level.",
+};
+
 const priced = (price, description, extras = {}) => ({
   accepts: [{ scheme: "exact", price, network: NETWORK, payTo: SELLER }],
   description, mimeType: "application/json",
   serviceName: "PayPerScreen",
+  iconUrl: "https://payperscreen.com/icon-512.png",
   tags: ["compliance", "sanctions", "ofac", "crypto", "kyc", "aml"],
   ...extras,
 });
@@ -87,53 +104,82 @@ async function recordSettlement(ctx) {
 // this URL. Payment matching uses `accepts`, not `resource`.
 app.use(paymentMiddleware(
   {
-    "GET /screen": priced("$0.02", "Sanctions screening", {
+    "GET /screen": priced("$0.02",
+      ROUTE_DESC["/screen"], {
       resource: PUBLIC_API + "/screen",
+      tags: ["sanctions", "ofac", "kyc", "aml", "compliance", "screening", "un", "eu", "uk"],
       extensions: declareDiscoveryExtension({
         method: "GET",
-        input: { name: "Jane Doe", dob: "", country: "", type: "Individual" },
+        input: { name: "Vladimir Putin", dob: "1952-10-07", country: "Russia", type: "Individual" },
         inputSchema: {
           properties: {
-            name: { type: "string", description: "Full name to screen" },
-            dob: { type: "string", description: "YYYY-MM-DD, optional" },
-            country: { type: "string", description: "Nationality, optional" },
+            name: { type: "string", description: "Full name of the person or company to screen" },
+            dob: { type: "string", description: "Date of birth, YYYY-MM-DD (optional; used by /context)" },
+            country: { type: "string", description: "Nationality or country (optional; used by /context)" },
+            type: { type: "string", enum: ["Individual", "Entity"], description: "Individual (default) or Entity" },
+          },
+          required: ["name"],
+        },
+        output: {
+          example: {
+            subject: { name: "Vladimir Putin", type: "Individual" },
+            listsChecked: ["OFAC SDN", "UN Consolidated", "EU Consolidated", "UK Sanctions List"],
+            listVersions: [{ list: "OFAC SDN", version: "2026-10-09" }],
+            hitCount: 1,
+            hits: [{ list: "OFAC SDN", score: 1, name: "Vladimir Vladimirovich PUTIN" }],
+          },
+        },
+      }),
+    }),
+    "GET /context": priced("$0.05",
+      ROUTE_DESC["/context"], {
+      resource: PUBLIC_API + "/context",
+      tags: ["sanctions", "false-positive", "kyc", "aml", "compliance", "screening"],
+      extensions: declareDiscoveryExtension({
+        method: "GET",
+        input: { name: "Vladimir Putin", dob: "1952-10-07", country: "Russia", type: "Individual" },
+        inputSchema: {
+          properties: {
+            name: { type: "string", description: "Same name as the prior /screen hit" },
+            dob: { type: "string", description: "Subject's date of birth, YYYY-MM-DD" },
+            country: { type: "string", description: "Subject's nationality" },
             type: { type: "string", enum: ["Individual", "Entity"] },
           },
           required: ["name"],
         },
         output: {
-          example: { subject: { name: "Jane Doe" }, listsChecked: ["OFAC SDN"], hitCount: 0, hits: [] },
+          example: {
+            fields: [{ field: "Date of birth", subject: "1952-10-07", listed: "07 Oct 1952", status: "match", note: "exact match" }],
+            meta: { list: "OFAC SDN", listVersion: "2026-10-09", program: "RUSSIA-EO14024", score: 1 },
+          },
         },
       }),
     }),
-    "GET /context": priced("$0.05", "Field comparison", {
-      resource: PUBLIC_API + "/context",
-      extensions: declareDiscoveryExtension({
-        method: "GET",
-        input: { name: "Jane Doe" },
-        inputSchema: {
-          properties: { name: { type: "string", description: "Same query as a prior /screen hit" } },
-          required: ["name"],
-        },
-        output: { example: { fields: [], meta: {} } },
-      }),
-    }),
-    "GET /screen-address": priced("$0.02", "Crypto address screening: OFAC sanctions, stablecoin freezes and known hack proceeds", {
+    "GET /screen-address": priced("$0.02",
+      ROUTE_DESC["/screen-address"], {
       resource: PUBLIC_API + "/screen-address",
+      tags: ["crypto", "wallet", "sanctions", "ofac", "aml", "kyt", "stablecoin", "hack", "compliance"],
       extensions: declareDiscoveryExtension({
         method: "GET",
-        input: { address: "0x0000000000000000000000000000000000dEaD" },
+        input: { address: "0x8576aCC5C05D6Ce88f4e49bf65BdF0C62F91353C" },
         inputSchema: {
-          properties: { address: { type: "string", description: "Wallet address on any supported chain" } },
+          properties: { address: { type: "string", description: "Wallet address: Bitcoin, Ethereum and other EVM chains, Tron, Solana and more" } },
           required: ["address"],
         },
         output: {
-          example: { address: "0x...", sanctioned: false, matches: [], frozenByIssuer: { listed: false, matches: [] }, hackFunds: { listed: false, matches: [] } },
+          example: {
+            address: "0x8576aCC5C05D6Ce88f4e49bf65BdF0C62F91353C", sanctioned: true,
+            matches: [{ asset: "ETH", source: "OFAC-SDN-CRYPTO", listedParty: "Example Sanctioned Exchange", sdnUid: "12345" }],
+            frozenByIssuer: { listed: false, matches: [], coverage: "USDT on Tron" },
+            hackFunds: { listed: false, matches: [] },
+          },
         },
       }),
     }),
-    "GET /screen-email": priced("$0.02", "Email trust check", {
+    "GET /screen-email": priced("$0.02",
+      ROUTE_DESC["/screen-email"], {
       resource: PUBLIC_API + "/screen-email",
+      tags: ["email", "fraud", "disposable-email", "signup", "kyc", "risk"],
       extensions: declareDiscoveryExtension({
         method: "GET",
         input: { email: "someone@example.com" },
@@ -142,21 +188,25 @@ app.use(paymentMiddleware(
           required: ["email"],
         },
         output: {
-          example: { email: "someone@example.com", riskLevel: "low", redFlag: false, flagCount: 0, signals: [] },
+          example: { email: "someone@example.com", riskLevel: "low", redFlag: false, flagCount: 0,
+                     signals: [{ id: "syntax_mx", label: "Syntax and mail server", severity: "critical", status: "pass", detail: "Domain accepts mail (mx.example.com)" }] },
         },
       }),
     }),
-    "GET /screen-ip": priced("$0.01", "IP risk check (beta)", {
+    "GET /screen-ip": priced("$0.01",
+      ROUTE_DESC["/screen-ip"], {
       resource: PUBLIC_API + "/screen-ip",
+      tags: ["ip", "fraud", "tor", "spamhaus", "risk"],
       extensions: declareDiscoveryExtension({
         method: "GET",
-        input: { ip: "1.2.3.4" },
+        input: { ip: "8.8.8.8" },
         inputSchema: {
-          properties: { ip: { type: "string", description: "A public IPv4 address to check" } },
+          properties: { ip: { type: "string", description: "A public IPv4 address" } },
           required: ["ip"],
         },
         output: {
-          example: { ip: "1.2.3.4", riskLevel: "low", redFlag: false, flagCount: 0, signals: [] },
+          example: { ip: "8.8.8.8", riskLevel: "low", redFlag: false, flagCount: 0,
+                     signals: [{ id: "tor_exit_node", label: "Tor exit node", status: "pass" }] },
         },
       }),
     }),
@@ -205,10 +255,11 @@ const DISCOVERY = [
     params: [["name", "Full name to screen", true], ["dob", "Date of birth, YYYY-MM-DD", false],
              ["country", "Nationality", false], ["type", "Individual or Entity", false]] },
   { path: "/context", price: "0.05", summary: "Field comparison for a /screen hit",
-    params: [["name", "Same query as the prior /screen hit", true]] },
+    params: [["name", "Same name as the prior /screen hit", true], ["dob", "Subject's date of birth, YYYY-MM-DD", false],
+             ["country", "Subject's nationality", false], ["type", "Individual or Entity", false]] },
   { path: "/screen-address", price: "0.02", summary: "Crypto address screening: OFAC sanctions, stablecoin freezes, known hack proceeds",
     params: [["address", "Wallet address on any supported chain", true]] },
-  { path: "/screen-email", price: "0.02", summary: "Email trust check",
+  { path: "/screen-email", price: "0.02", summary: "Email risk check (10 signals)",
     params: [["email", "Email address to check", true]] },
   { path: "/screen-ip", price: "0.01", summary: "IP risk check (beta)",
     params: [["ip", "Public IPv4 address", true]] },
@@ -231,6 +282,7 @@ app.get("/openapi.json", (_, res) => res.json({
   paths: Object.fromEntries(DISCOVERY.map(d => [d.path, { get: {
     operationId: d.path.slice(1).replace(/-(\w)/g, (_, c) => c.toUpperCase()),
     summary: d.summary,
+    description: ROUTE_DESC[d.path],
     tags: ["compliance"],
     parameters: d.params.map(([name, description, required]) =>
       ({ name, in: "query", required, description, schema: { type: "string" } })),
