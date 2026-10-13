@@ -59,6 +59,7 @@ npm start                     # website
 | `ETH_RPC_URL`, `BASE_RPC_URL`, `ARB_RPC_URL`, `OP_RPC_URL` | optional | Node URLs that serve historical logs (e.g. Infura). Each one set switches on freeze coverage for that chain (USDT and USDC on Ethereum, USDC on Base, Arbitrum, Optimism); unset chains are skipped and not claimed |
 | `PUBLIC_API_URL` | optional | Public URL reported to x402 directories |
 | `TOPUP_MIN_USD` | optional | Minimum prepaid top-up (default 1.25) |
+| `INTERNAL_API_KEY` | recommended | Same random value (32+ characters) on both services. Prepaid-balance checks then come straight off the customer's balance via `/internal/*`, with no second on-chain payment |
 | `SOLANA_PAY_TO` | optional | A Solana address to receive USDC; when set, every paid route also accepts payment on Solana |
 
 **Site settings**
@@ -66,7 +67,8 @@ npm start                     # website
 | Variable | Needed | Purpose |
 |---|---|---|
 | `COMPLIANCE_API_URL` | yes | Where the API runs |
-| `BUYER_KEY` | yes | Wallet the site pays the API from in prepaid mode |
+| `BUYER_KEY` | yes | Site wallet: pays the API for admin test checks (and for prepaid checks if `INTERNAL_API_KEY` isn't set) |
+| `INTERNAL_API_KEY` | recommended | Same value as on the API; prepaid checks then come off customers' balances directly |
 | `ADMIN_CODE` | yes | Code for `/admin` |
 | `DB_PATH` | yes in production | SQLite file for accounts, cases, balances (put it on a persistent volume) |
 | `CONTACT_EMAIL`, `CONTACT_X`, `CONTACT_FACEBOOK` | optional | Footer contact details |
