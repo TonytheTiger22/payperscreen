@@ -473,7 +473,6 @@ async function post(url, body, needUsd){
  return r;
 }
 
-const ctxLabel=()=>"Get the field comparison for 5&cent; "+(PAY_MODE==="balance"?"from your balance":"from your wallet");
 const STATUS_TAG={match:['y','agrees'],partial:['p','partial'],differs:['n','differs'],unknown:['u','no data']};
 function comparisonTable(fields){
  const rows=fields.map(f=>{
