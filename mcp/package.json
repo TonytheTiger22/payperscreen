@@ -1,6 +1,6 @@
 {
   "name": "payperscreen-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for PayPerScreen: sanctions, crypto wallet, email and IP screening for AI agents, paid per check in USDC over x402. No account or API key.",
   "type": "module",
   "bin": {

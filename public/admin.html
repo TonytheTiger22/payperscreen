@@ -271,6 +271,20 @@ async function loadCredits(){
 }
 const LIST_NAME={OFAC:"OFAC SDN",UN:"UN Consolidated",EU:"EU Consolidated",UK:"UK Sanctions List",
  "OFAC-SDN-CRYPTO":"OFAC wallet addresses","STABLECOIN-FREEZE":"Stablecoin freezes"};
+function usageTable(r){
+ const u=r.usageByClient||[];
+ const NAME={mcp:"MCP server (Claude, Cursor…)",website:"Website (payperscreen.com)",other:"Other x402 callers"};
+ const order=["mcp","website","other"];
+ const rows=order.map(c=>{const x=u.filter(y=>y.client===c); if(!x.length) return null;
+  const paid=x.filter(y=>y.paid).reduce((a,y)=>a+y.calls,0), free=x.filter(y=>!y.paid).reduce((a,y)=>a+y.calls,0);
+  const last=x.map(y=>y.lastAt).sort().pop();
+  const routes=x.filter(y=>y.paid).map(y=>y.route+' '+y.calls).join(', ');
+  return '<tr><td>'+esc(NAME[c])+'</td><td><b>'+paid+'</b></td><td>'+(c==="mcp"?free:'&ndash;')+'</td><td>'+esc(when(last))+'</td><td>'+esc(routes)+'</td></tr>';}).filter(Boolean);
+ return '<div class="lbl" style="margin-top:16px">Usage by client</div>'
+  +(rows.length?'<table><tr><th>Client</th><th>Paid checks</th><th>Free calls</th><th>Last call</th><th>Paid checks by endpoint</th></tr>'+rows.join('')+'</table>'
+   :'<div class="note">No calls recorded yet.</div>')
+  +'<div class="note">Counted from now on. Paid checks count only when the payment settled (or came off a prepaid balance). Free calls are counted for the MCP server only.</div>';
+}
 function bazaarTable(r){
  if(!r.bazaar||!r.bazaar.length) return '';
  const PILL={success:'<span class="pill ok">listed</span>',processing:'<span class="pill warn">processing</span>',
@@ -300,7 +314,7 @@ async function loadRefresh(){
    +r.lists.map(l=>'<tr><td>'+esc(LIST_NAME[l.source]||l.source)+'</td><td>'+pill(l)+'</td><td>'+esc(when(l.attemptedAt))
     +'</td><td>'+(l.records==null?'n/a':l.records)+'</td><td>'+esc(l.error||partial(l)||"")+'</td></tr>').join('')+'</table>'
    :'<div class="note">No refresh has been recorded yet. The first one starts a minute after the API deploys.</div>')
-  +bazaarTable(r)
+  +bazaarTable(r)+usageTable(r)
   +(r.stablecoinFreezesByChain.length?'<div class="lbl" style="margin-top:16px">Stablecoin freezes by chain</div><table><tr><th>Token</th><th>Chain</th><th>Frozen wallets</th></tr>'
    +r.stablecoinFreezesByChain.map(f=>'<tr><td>'+esc(f.token)+'</td><td>'+esc(f.chain)+'</td><td>'+f.n+'</td></tr>').join('')+'</table>':'');
 }

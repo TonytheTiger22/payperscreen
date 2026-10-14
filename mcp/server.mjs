@@ -18,7 +18,9 @@ import { x402Client } from "@x402/core/client";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
+// Identifies this client to the API, which counts calls per client (no personal data).
+const CLIENT_HEADERS = { "user-agent": `payperscreen-mcp/${VERSION}`, "x-payperscreen-client": `payperscreen-mcp/${VERSION}` };
 const API = (process.env.PAYPERSCREEN_API_URL || "https://api.payperscreen.com").replace(/\/$/, "");
 const MAX_SPEND = Number(process.env.PAYPERSCREEN_MAX_SPEND ?? 1);
 const NETWORKS = { base: "eip155:8453", polygon: "eip155:137", arbitrum: "eip155:42161" };
@@ -45,7 +47,7 @@ const asText = (obj) => ({ content: [{ type: "text", text: typeof obj === "strin
 const fail = (msg) => ({ isError: true, content: [{ type: "text", text: msg }] });
 
 async function getFree(path) {
-  const r = await fetch(API + path, { signal: AbortSignal.timeout(30000) });
+  const r = await fetch(API + path, { headers: CLIENT_HEADERS, signal: AbortSignal.timeout(30000) });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
   return body;
@@ -64,7 +66,7 @@ async function callPaid(path, params) {
     `Spending cap reached: this session has spent $${spent.toFixed(2)} of its $${MAX_SPEND.toFixed(2)} limit ` +
     "(PAYPERSCREEN_MAX_SPEND). Nothing was charged for this request.");
   const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""))).toString();
-  const r = await payFetch(`${API}${path}?${qs}`, { method: "GET" });
+  const r = await payFetch(`${API}${path}?${qs}`, { method: "GET", headers: CLIENT_HEADERS });
   if (r.status >= 400 && r.status !== 402) {
     const body = await r.json().catch(() => ({}));
     throw new Error((body.error || `Request failed (HTTP ${r.status})`) + ". Nothing was charged.");
