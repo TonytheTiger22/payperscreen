@@ -53,6 +53,14 @@ one of those chains: no gas token, since the facilitator submits the
 transaction. To see a real response first, call the free
 `GET https://api.payperscreen.com/sample/screen` or `/sample/screen-address`.
 
+## MCP server
+
+AI agents can use PayPerScreen as tools via MCP: `npx -y payperscreen-mcp`
+(tools: screen_name, screen_wallet, check_email, check_ip, plus free
+lists_coverage and samples). It pays per check from the wallet in
+PAYPERSCREEN_PRIVATE_KEY, with a spending cap (PAYPERSCREEN_MAX_SPEND,
+default $1). Setup: https://github.com/TonytheTiger22/payperscreen/tree/main/mcp
+
 ## Endpoints (see /docs for full detail)
 
 - `GET /screen`, $0.02: fuzzy name match across the loaded sanctions lists (OFAC, UN, EU, UK); each hit

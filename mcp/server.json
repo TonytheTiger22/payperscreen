@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.TonytheTiger22/payperscreen",
+  "title": "PayPerScreen",
+  "description": "Sanctions, crypto wallet, email and IP screening for agents. Pay per check in USDC via x402.",
+  "websiteUrl": "https://payperscreen.com",
+  "repository": {
+    "url": "https://github.com/TonytheTiger22/payperscreen",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "payperscreen-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PAYPERSCREEN_PRIVATE_KEY",
+          "description": "Private key of a wallet holding a few dollars of USDC; pays 1 to 2 cents per check. Free tools work without it.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "PAYPERSCREEN_MAX_SPEND",
+          "description": "Maximum USD the server may spend per session (default 1.00).",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "PAYPERSCREEN_NETWORK",
+          "description": "Where the wallet holds USDC: base (default), polygon or arbitrum.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

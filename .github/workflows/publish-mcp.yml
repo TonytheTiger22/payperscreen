@@ -1,0 +1,49 @@
+# Publishes the MCP server (mcp/) to npm and to the official MCP Registry.
+# Run it from GitHub: Actions -> "Publish MCP server" -> Run workflow, or push
+# a tag like mcp-v0.1.0. Needs one repository secret: NPM_TOKEN (an npm
+# "Automation" or granular access token that can publish payperscreen-mcp).
+# The registry step signs in with GitHub's own OIDC token, no secret needed.
+name: Publish MCP server
+on:
+  workflow_dispatch:
+  push:
+    tags: ["mcp-v*"]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install dependencies
+        run: npm ci
+      - name: Check the server starts and lists its tools
+        run: |
+          node --input-type=module -e '
+            import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+            import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+            const c = new Client({ name: "ci", version: "1" });
+            await c.connect(new StdioClientTransport({ command: "node", args: ["server.mjs"] }));
+            const t = (await c.listTools()).tools.map((x) => x.name);
+            console.log(t.join(", ")); if (t.length < 8) process.exit(1); await c.close();'
+      - name: Publish to npm (skipped if this version is already published)
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if npm view "payperscreen-mcp@$V" version >/dev/null 2>&1; then echo "payperscreen-mcp@$V already on npm"; else npm publish --access public; fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Sign in to the MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+      - name: Publish to the MCP Registry
+        run: ./mcp-publisher publish

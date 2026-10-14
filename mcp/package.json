@@ -1,0 +1,48 @@
+{
+  "name": "payperscreen-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for PayPerScreen: sanctions, crypto wallet, email and IP screening for AI agents, paid per check in USDC over x402. No account or API key.",
+  "type": "module",
+  "bin": {
+    "payperscreen-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test:e2e": "node test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "sanctions",
+    "ofac",
+    "kyc",
+    "aml",
+    "compliance",
+    "crypto",
+    "screening"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TonytheTiger22/payperscreen.git",
+    "directory": "mcp"
+  },
+  "homepage": "https://payperscreen.com",
+  "mcpName": "io.github.TonytheTiger22/payperscreen",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@x402/core": "^2.28.0",
+    "@x402/evm": "^2.28.0",
+    "@x402/fetch": "^2.28.0",
+    "viem": "^2.21.0",
+    "zod": "^3.25.0"
+  }
+}
