@@ -72,7 +72,7 @@ function decodeB64Json(h) { try { return JSON.parse(Buffer.from(h, "base64").toS
 
 async function walletBuy(req, path, params, label, price) {
   const t0 = Date.now();
-  const headers = {};
+  const headers = { "x-payperscreen-client": "website" };
   for (const h of PAY_HEADERS_IN) if (req.headers[h]) headers[h] = String(req.headers[h]);
   const qs = new URLSearchParams(params).toString();
   const r = await fetch(`${API}${path}?${qs}`, { method: "GET", headers });
@@ -134,7 +134,7 @@ const SITE_PAY_ERRORS = {
 async function siteBuy(path, params, label, price) {
   const t0 = Date.now();
   const qs = new URLSearchParams(params).toString();
-  const r = await fetchWithPayment(`${API}${path}?${qs}`, { method: "GET" });
+  const r = await fetchWithPayment(`${API}${path}?${qs}`, { method: "GET", headers: { "x-payperscreen-client": "website" } });
   // The API answers bad input with a 4xx (which x402 never charges for):
   // pass its message on instead of a bare "Payment failed".
   if (r.status >= 400 && r.status !== 402) {

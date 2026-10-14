@@ -140,6 +140,36 @@ async function recordSettlement(ctx) {
      bazaar ? JSON.stringify(bazaar).slice(0, 2000) : null]);
 }
 
+// ---- Usage by client -----------------------------------------------------------
+// Counts successful calls per client so /admin shows where traffic comes from:
+// "mcp" (the payperscreen-mcp server tags its requests), "website"
+// (payperscreen.com, including prepaid checks via /internal) or "other" (direct
+// x402 callers). Paid routes are counted only on success, which for x402 means
+// the payment settled; for the MCP server, free calls are counted too.
+await pool.query(`CREATE TABLE IF NOT EXISTS client_usage (
+    client TEXT NOT NULL, route TEXT NOT NULL, paid BOOLEAN NOT NULL, calls INT NOT NULL DEFAULT 0,
+    first_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (client, route, paid))`)
+  .catch((e) => console.error("client_usage table:", String(e.message || e)));
+const PAID_ROUTES = new Set(["/screen", "/screen-address", "/screen-email", "/screen-ip", "/context"]);
+function clientOf(req) {
+  const tag = String(req.get("x-payperscreen-client") || "").toLowerCase();
+  if (tag.startsWith("payperscreen-mcp") || /^payperscreen-mcp\//i.test(req.get("user-agent") || "")) return "mcp";
+  if (tag === "website" || req.path.startsWith("/internal/")) return "website";
+  return "other";
+}
+app.use((req, res, next) => {
+  const route = req.path.replace(/^\/internal(?=\/)/, "").slice(0, 100);
+  const paid = PAID_ROUTES.has(route), client = clientOf(req);
+  if (paid || client === "mcp") res.on("finish", () => {
+    if (res.statusCode >= 400) return;
+    pool.query(`INSERT INTO client_usage (client, route, paid, calls) VALUES ($1, $2, $3, 1)
+                ON CONFLICT (client, route, paid) DO UPDATE SET calls = client_usage.calls + 1, last_at = now()`,
+      [client, route, paid]).catch((e) => console.error("client_usage:", String(e.message || e)));
+  });
+  next();
+});
+
 // Each paid route reports its public URL as the x402 `resource`, so a
 // payment settles for api.payperscreen.com even when payperscreen.com calls
 // the API over Railway's generated or internal hostname. Bazaar indexes by
@@ -868,12 +898,14 @@ async function step(source, fn) {
 const run = { running: false, startedAt: null, finishedAt: null };
 
 app.get("/refresh-status", async (_, res) => {
-  const [{ rows }, settlements, freezes] = await Promise.all([
+  const [{ rows }, settlements, freezes, clients] = await Promise.all([
     pool.query("SELECT source, attempted_at, ok, records, error, detail FROM refresh_status ORDER BY source")
       .catch(() => ({ rows: [] })),
     pool.query("SELECT resource, settled, last_at, bazaar_status, bazaar_detail, bazaar_at FROM x402_settlements ORDER BY resource")
       .then((r) => r.rows).catch(() => []),
     pool.query("SELECT token, chain, count(*)::int AS n FROM stablecoin_freezes GROUP BY token, chain ORDER BY token, chain")
+      .then((r) => r.rows).catch(() => []),
+    pool.query("SELECT client, route, paid, calls, first_at, last_at FROM client_usage ORDER BY client, paid DESC, route")
       .then((r) => r.rows).catch(() => []),
   ]);
   res.json({
@@ -891,6 +923,8 @@ app.get("/refresh-status", async (_, res) => {
     }),
     otherSettlements: settlements.filter((x) => !DISCOVERY.some((d) => x.resource === PUBLIC_API + d.path))
       .map((x) => ({ resource: x.resource, settledPayments: x.settled, lastSettledAt: x.last_at })),
+    usageByClient: clients.map((c) => ({ client: c.client, route: c.route, paid: c.paid, calls: c.calls,
+                                         firstAt: c.first_at, lastAt: c.last_at })),
   });
 });
 
