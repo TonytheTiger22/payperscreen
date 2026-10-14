@@ -86,6 +86,34 @@ const priced = (price, description, extras = {}) => ({
 // without already knowing the URL. Purely additive: has no effect on the
 // payment flow itself, only on whether the route shows up in a discovery
 // listing.
+// ---- Database lock-down -----------------------------------------------------
+// The database is a Supabase project, which publishes every table in the
+// public schema through its REST API to anyone holding the project's anon
+// key. Nothing here should be reachable that way (this API connects directly
+// as the table owner), so: Row-Level Security on with no policies (denies the
+// anon and authenticated roles, while the owner is unaffected) and their
+// table privileges revoked. Runs at startup and after each list refresh, so
+// tables created later are covered too. Harmless outside Supabase.
+async function lockDownTables(log = console.log) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT tablename FROM pg_tables
+       WHERE schemaname = 'public' AND tableowner = current_user AND NOT rowsecurity`);
+    for (const { tablename } of rows) {
+      await pool.query(`ALTER TABLE public."${tablename.replace(/"/g, '""')}" ENABLE ROW LEVEL SECURITY`);
+      log(`[security] row-level security enabled on ${tablename}`);
+    }
+  } catch (e) { console.error("[security] enabling RLS failed:", String(e.message || e)); }
+  for (const role of ["anon", "authenticated"]) {
+    try {
+      await pool.query(`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${role}`);
+      await pool.query(`REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${role}`);
+    } catch (e) {
+      if (!/does not exist/i.test(String(e.message))) console.error(`[security] revoke from ${role} failed:`, String(e.message || e));
+    }
+  }
+}
+
 // ---- Bazaar listing status -------------------------------------------------
 // After each settled payment the CDP facilitator says whether it catalogued
 // the route in its Bazaar discovery index ("success", "processing" or
@@ -889,10 +917,12 @@ if (process.env.AUTO_REFRESH_LISTS === "1") {
           throw new Error("every chain failed: " + failed.map(([k, r]) => `${k}: ${r.error}`).join("; "));
         return results;
       });
-    } finally { client.release(); run.running = false; run.finishedAt = new Date().toISOString(); }
+    } finally { client.release(); run.running = false; run.finishedAt = new Date().toISOString(); await lockDownTables(); }
   };
   setTimeout(refreshAll, 60_000);
   setInterval(refreshAll, 24 * 3600_000);
 }
+
+await lockDownTables();
 
 app.listen(4025, () => console.log("Compliance API on 4025 (live OFAC data, staged comparison)"));

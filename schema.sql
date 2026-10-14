@@ -47,3 +47,12 @@ CREATE TABLE IF NOT EXISTS sanctioned_addresses (
 
 CREATE INDEX IF NOT EXISTS idx_sanctioned_addresses_normalized
   ON sanctioned_addresses (address_normalized);
+
+-- Supabase publishes the public schema through its REST API. Nothing here
+-- should be reachable that way: RLS on with no policies denies the anon and
+-- authenticated roles (the API connects as the table owner, which bypasses
+-- RLS). compliance-api.js also does this at startup for every table it owns.
+ALTER TABLE entities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entity_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE list_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sanctioned_addresses ENABLE ROW LEVEL SECURITY;
