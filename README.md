@@ -31,6 +31,14 @@ PRIVATE_KEY=0x... node examples/agent-client.mjs screen "Jane Doe"
 
 An unpaid request returns `402 Payment Required` with the price; the client signs a USDC payment and retries.
 
+## Use it from Claude, Cursor or any MCP client
+
+The [`mcp/`](mcp) folder is an MCP server (`npx -y payperscreen-mcp`) that gives an AI agent `screen_name`, `screen_wallet`, `check_email` and `check_ip` tools, paying per check from a wallet you configure, with a spending cap. See [mcp/README.md](mcp/README.md).
+
+```bash
+claude mcp add payperscreen -e PAYPERSCREEN_PRIVATE_KEY=0xYOUR_KEY -- npx -y payperscreen-mcp
+```
+
 ## Running your own
 
 Two Node services from one repo, plus Postgres:
