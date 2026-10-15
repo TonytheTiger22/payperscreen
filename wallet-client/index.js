@@ -50,18 +50,31 @@ async function ensureBase() {
   }
 }
 
-async function connect(id) {
+async function connect(id, opts = {}) {
   const wallets = await listWallets();
   const w = (id && wallets.find((x) => x.id === id)) || wallets[0];
   if (!w) throw new Error("NO_WALLET");
   provider = w.provider;
+  // Ask the wallet to show its account chooser. Without this, wallets such as
+  // MetaMask silently hand back the account already connected to this site,
+  // so a visitor can't switch to another account. Not every wallet supports
+  // it; those fall back to the plain request.
+  if (opts.chooseAccount) {
+    try { await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] }); }
+    catch (e) { if (e?.code === 4001 || /reject|denied/i.test(e?.message || "")) throw e; }
+  }
   const accounts = await provider.request({ method: "eth_requestAccounts" });
   address = accounts?.[0];
   if (!address) throw new Error("No account was shared by the wallet");
   await ensureBase();
   return { address, name: w.name };
 }
-function disconnect() { provider = null; address = null; }
+// Forget the wallet on this page and, where the wallet supports it, also end
+// this site's connection in the wallet itself, so the next connect starts fresh.
+async function disconnect() {
+  const p = provider; provider = null; address = null;
+  try { await p?.request?.({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }); } catch {}
+}
 
 async function usdcBalance() {
   const pc = createPublicClient({ chain: base, transport: custom(provider) });
@@ -97,7 +110,8 @@ window.PPSWallet = {
   listWallets, connect, disconnect, usdcBalance, payFetch, signMessage,
   get address() { return address; },
   onChange(cb) {
-    provider?.on?.("accountsChanged", (a) => { address = a?.[0] || null; cb(); });
+    const p = provider;
+    p?.on?.("accountsChanged", (a) => { if (provider !== p) return; address = a?.[0] || null; cb(); });
     provider?.on?.("chainChanged", () => cb());
   },
 };
