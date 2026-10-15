@@ -316,7 +316,7 @@ async function refreshWalletStatus(){
  const w=window.PPSWallet; if(!w||!w.address){ $("wallet-status").textContent=""; return; }
  let bal=""; try{ bal=", "+(await w.usdcBalance()).toFixed(2)+" USDC"; }catch{}
  $("wallet-status").innerHTML=esc("Connected "+short(w.address)+bal+" on Base")+'<button id="wm-change">Change</button>';
- $("wm-change").onclick=()=>{ window.PPSWallet.disconnect(); setMode("none"); openWalletModal(); };
+ $("wm-change").onclick=async()=>{ await window.PPSWallet.disconnect(); setMode("none"); openWalletModal(); };
 }
 const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 function closeModal(){ $("wm-back").style.display="none"; }
@@ -344,7 +344,7 @@ async function openWalletModal(){
 async function pickWallet(w){
  $("wm-err").textContent=""; $("wm-list").querySelectorAll("button.w").forEach(b=>b.disabled=true);
  try{
-  await window.PPSWallet.connect(w.id);
+  await window.PPSWallet.connect(w.id,{chooseAccount:true});
   window.PPSWallet.onChange(()=>{ refreshWalletStatus(); if(PAY_MODE==="balance"){ creditMsg=""; renderCredits(); } });
   closeModal();
   if(afterConnect){ const f=afterConnect; afterConnect=null; await f(); }
@@ -400,11 +400,11 @@ function renderCredits(){
  const checksLeft=Math.floor((c.balanceUsd+1e-9)/0.02);
  const cur=window.PPSWallet&&window.PPSWallet.address;
  const warn=(cur&&c.address&&cur.toLowerCase()!==c.address.toLowerCase())
-  ?'<div class="row"><span class="e">Your wallet is now on '+esc(short(cur))+', but this balance belongs to '+esc(short(c.address))+'. Sign out, then sign in again to use '+esc(short(cur))+'.</span></div>':'';
+  ?'<div class="row"><span class="e">Your wallet is now on '+esc(short(cur))+', but this balance belongs to '+esc(short(c.address))+'. Log out, then sign in again to use '+esc(short(cur))+'.</span></div>':'';
  const amts=[c.limits.min,5,10,25].filter((v,i,a)=>v>=c.limits.min&&a.indexOf(v)===i);
  el.innerHTML='<span class="bal">'+usd(c.balanceUsd)+'</span> prepaid, enough for about '+checksLeft+' name check'+(checksLeft===1?'':'s')+'.'
   +' Wallet '+esc(short(c.address))+'.'
-  +' <button class="lnk" id="cr-out">Sign out</button>'
+  +'<div class="row"><button class="amt" id="cr-out">Log out</button> <span style="font-size:12.5px">Logs this wallet out of your balance and disconnects it, so you can sign in with another.</span></div>'
   +warn
   +(c.topupsEnabled
     ?'<div class="row">Top up: '+amts.map(a=>'<button class="amt" data-a="'+a+'">'+usd(a)+'</button>').join("")
@@ -415,7 +415,7 @@ function renderCredits(){
   +(creditMsg?'<div class="row">'+creditMsg+'</div>':'');
  el.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>topUp(+b.dataset.a));
  const cg=$("cr-custom-go"); if(cg) cg.onclick=()=>topUp(+$("cr-custom").value);
- $("cr-out").onclick=async()=>{ await fetch("/api/credits/logout",{method:"POST"}); if(window.PPSWallet) window.PPSWallet.disconnect(); refreshWalletStatus(); creditMsg=""; await loadCredits(); renderCredits(); };
+ $("cr-out").onclick=async()=>{ await fetch("/api/credits/logout",{method:"POST"}); if(window.PPSWallet) await window.PPSWallet.disconnect(); refreshWalletStatus(); creditMsg=""; await loadCredits(); renderCredits(); };
 }
 function topUp(amount){
  const c=CREDITS;
