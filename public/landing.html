@@ -57,13 +57,7 @@
  .ex:hover{background:#FFEEB2}
 
  button{font:inherit;cursor:pointer}
- .paybar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:12px 14px;
-         background:var(--wash);border-radius:16px;font:400 14.5px var(--body);color:var(--dim)}
- .pm{font:600 14px var(--body);padding:6px 12px;border:1px solid var(--line);background:#fff;color:var(--dim);cursor:pointer;border-radius:999px}
- .pm.active{border-color:#BFE3CF;color:var(--ink);background:var(--mint)}
- #wallet-status{font-weight:400}
- #wallet-status button{font:inherit;color:var(--link);background:none;border:0;cursor:pointer;padding:0 0 0 6px;text-decoration:underline}
- .credit{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:-6px 0 18px;font:400 14.5px/1.5 var(--body);color:var(--dim);background:var(--mint)}
+ .credit{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:0 0 18px;font:400 14.5px/1.5 var(--body);color:var(--dim);background:var(--mint)}
  .credit .bal{font:600 22px var(--display);color:var(--ink)}
  .credit .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
  .credit .amt{font:700 14px var(--body);padding:6px 12px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;border-radius:999px}
@@ -131,11 +125,11 @@
  <div class="intro">
   <h1>Run a check</h1>
   <p class="lead">Screen a name against the OFAC, UN, EU and UK sanctions lists, or check a crypto
-     wallet, an email or an IP address. Each check is a real 1 to 2 cent payment in USDC on Base,
+     wallet, an email or an IP address. Each check costs 1 to 2 cents from a prepaid USDC balance,
      and every result is saved with a reference you can show an auditor.</p>
   <div class="pay-ways">
-   <div class="pay-way" style="--c:var(--sky)"><b>Pay from your wallet</b><span>Your wallet asks you to approve each check. Nothing else to set up.</span></div>
-   <div class="pay-way" style="--c:var(--mint)"><b>Use a prepaid balance</b><span>Top up once, from about €1, and checks come off your balance with no popup.</span></div>
+   <div class="pay-way" style="--c:var(--sky)"><b>Top up once</b><span>Sign in with your wallet and add USDC on Base. One approval in your wallet.</span></div>
+   <div class="pay-way" style="--c:var(--mint)"><b>Run checks</b><span>Each check comes off your balance, with no wallet popup.</span></div>
   </div>
   <p class="small">New to paying per check? <a href="/#x402">Here's how it works</a>.
      Want it automatic? <a href="/docs">The API docs</a> show how to call the same checks from your own system.</p>
@@ -149,13 +143,7 @@
    <button class="mode" id="tab-ip">IP address</button>
   </div>
 
-  <div class="paybar">
-   <span>Pay with:</span>
-   <button class="pm active" id="pm-wallet" title="Pay per check in USDC on Base from your own wallet">My wallet (USDC on Base)</button>
-   <button class="pm" id="pm-balance" title="Top up once in USDC, then checks are deducted with no wallet popup">Prepaid balance</button>
-   <span id="wallet-status"></span>
-  </div>
-  <div class="credit" id="credit-panel" style="display:none"></div>
+  <div class="credit" id="credit-panel"></div>
 
   <div id="card-name">
    <label>Full name <span class="req">(required)</span></label>
@@ -184,7 +172,7 @@
    </div>
 
    <button class="go" id="go">Screen this subject</button>
-   <div class="price">Costs 2¢, including a date-of-birth and nationality check against every match (fill them in above). <span class="settle-note">Settles on-chain in about two seconds.</span></div>
+   <div class="price">Costs 2¢, including a date-of-birth and nationality check against every match (fill them in above). <span class="settle-note">Deducted from your prepaid balance, no wallet popup.</span></div>
    <div id="err" class="err"></div>
   </div>
 
@@ -290,7 +278,7 @@ $("ex-email").onclick=()=>{ $("email").value="info@google.com"; };
 $("ex-ip").onclick=()=>{ $("ip").value="1.1.1.1"; };
 
 // ---------- who pays: the visitor's own wallet, or their prepaid balance ----------
-let PAY_MODE="wallet", walletLoaded=null, afterConnect=null;
+let PAY_MODE="balance", walletLoaded=null, afterConnect=null;
 function loadWalletLib(){
  if(walletLoaded) return walletLoaded;
  walletLoaded=new Promise((ok,bad)=>{
@@ -302,22 +290,15 @@ function loadWalletLib(){
 }
 const short=(a)=>a.slice(0,6)+"…"+a.slice(-4);
 // m: "wallet" (own wallet), "balance" (prepaid) or "none"
-function setMode(m){
- $("pm-wallet").classList.toggle("active",m==="wallet");
- PAY_MODE=m;
- $("pm-balance").classList.toggle("active",m==="balance");
- if(m!=="wallet") $("wallet-status").textContent="";
- $("credit-panel").style.display=m==="balance"?"":"none";
- if(m==="balance") renderCredits();
- document.querySelectorAll(".settle-note").forEach(el=>el.textContent=m==="balance"
-   ?"Deducted from your prepaid balance, no wallet popup.":"Settles on-chain in about two seconds.");
+// Checks on this site are paid from a prepaid balance only (one wallet
+// signature per top-up, not per 2c check). The wallet is used to sign in and
+// to top up. Agents and developers pay per call with x402 on the API itself.
+function setMode(){
+ PAY_MODE="balance";
+ renderCredits();
+ document.querySelectorAll(".settle-note").forEach(el=>el.textContent="Deducted from your prepaid balance, no wallet popup.");
 }
-async function refreshWalletStatus(){
- const w=window.PPSWallet; if(!w||!w.address){ $("wallet-status").textContent=""; return; }
- let bal=""; try{ bal=", "+(await w.usdcBalance()).toFixed(2)+" USDC"; }catch{}
- $("wallet-status").innerHTML=esc("Connected "+short(w.address)+bal+" on Base")+'<button id="wm-change">Change</button>';
- $("wm-change").onclick=async()=>{ await window.PPSWallet.disconnect(); setMode("none"); openWalletModal(); };
-}
+function refreshWalletStatus(){}
 const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 function closeModal(){ $("wm-back").style.display="none"; }
 async function openWalletModal(){
@@ -348,7 +329,7 @@ async function pickWallet(w){
   window.PPSWallet.onChange(()=>{ refreshWalletStatus(); if(PAY_MODE==="balance"){ creditMsg=""; renderCredits(); } });
   closeModal();
   if(afterConnect){ const f=afterConnect; afterConnect=null; await f(); }
-  else { setMode("wallet"); await refreshWalletStatus(); }
+  else { setMode(); }
  }catch(e){
   $("wm-list").querySelectorAll("button.w").forEach(b=>b.disabled=false);
   $("wm-err").textContent=/reject|denied|4001/i.test(e.message||"")?"Connection cancelled in the wallet.":"Couldn't connect: "+(e.message||e);
@@ -356,11 +337,6 @@ async function pickWallet(w){
 }
 $("wm-close").onclick=()=>{ afterConnect=null; closeModal(); };
 $("wm-back").onclick=(e)=>{ if(e.target.id==="wm-back"){ afterConnect=null; closeModal(); } };
-function useWallet(){
- if(window.PPSWallet&&window.PPSWallet.address){ setMode("wallet"); refreshWalletStatus(); } // already connected
- else openWalletModal();
-}
-$("pm-wallet").onclick=useWallet;
 
 // ---------- prepaid balance: top up once, then checks deduct with no popup ----------
 let CREDITS={signedIn:false,balanceUsd:0,limits:{min:1.25,max:250},topupsEnabled:true}, creditMsg="";
@@ -378,14 +354,11 @@ async function signInCredits(){
   const r=await (await fetch("/api/credits/login",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({address:window.PPSWallet.address,message:n.message,signature:sig})})).json();
   if(!r.ok) throw new Error(r.error||"Sign-in failed");
-  creditMsg=""; await loadCredits(); setMode("balance");
+  creditMsg=""; await loadCredits(); setMode();
  }catch(e){
   creditMsg='<span class="e">'+esc(/reject|denied|4001|cancel/i.test(e.message||"")?"Sign-in cancelled in the wallet.":(e.message||e))+'</span>';
   renderCredits();
  }
-}
-async function useBalance(){
- await loadCredits(); setMode("balance");
 }
 function renderCredits(){
  const c=CREDITS, el=$("credit-panel");
@@ -422,7 +395,7 @@ function topUp(amount){
  if(!(amount>=c.limits.min)){ creditMsg='<span class="e">The minimum top-up is '+usd(c.limits.min)+'.</span>'; return renderCredits(); }
  if(amount>c.limits.max){ creditMsg='<span class="e">The maximum top-up is '+usd(c.limits.max)+'.</span>'; return renderCredits(); }
  withWallet(async()=>{
-  setMode("balance");
+  setMode();
   const w=window.PPSWallet;
   creditMsg='<span>Waiting for your wallet to sign a '+usd(amount)+' USDC payment…</span>'; renderCredits();
   el_disable(true);
@@ -445,7 +418,7 @@ function topUp(amount){
  });
 }
 function el_disable(on){ $("credit-panel").querySelectorAll("button").forEach(b=>b.disabled=on); }
-$("pm-balance").onclick=useBalance;
+loadCredits().then(()=>setMode());   // page start: show the balance panel
 
 // The site normally answers in JSON. During a redeploy or a timeout the hosting
 // layer answers with an HTML error page instead; say so in plain words.
@@ -454,8 +427,7 @@ async function readJson(res){
  try{ return JSON.parse(t); }
  catch{ throw new Error("The server didn't respond properly"+(res.status>=500?" (error "+res.status+")":"")+". It may be restarting: try again in a minute."); }
 }
-// POST JSON; in wallet mode the visitor's wallet signs the payment (x402) and we
-// check their USDC balance first so a short balance gives a clear message.
+// POST JSON; the check is deducted from the visitor's prepaid balance.
 async function post(url, body, needUsd){
  if(PAY_MODE==="balance"){
   if(!CREDITS.signedIn) throw new Error("Sign in with your wallet to use your prepaid balance (see above).");
@@ -465,24 +437,7 @@ async function post(url, body, needUsd){
   await loadCredits(); renderCredits();
   return r;
  }
- try{ await loadWalletLib(); }catch(e){ throw e; }
- const w=window.PPSWallet;
- if(!w||!w.address){ openWalletModal(); throw new Error("Connect a wallet to pay for this check."); }
- try{ const bal=await w.usdcBalance();
-      if(needUsd && bal<needUsd) throw new Error("Not enough USDC on Base: this costs "+Math.round(needUsd*100)+"¢ and your wallet has "+bal.toFixed(2)+" USDC."); }
- catch(e){ if(/Not enough USDC/.test(e.message)) throw e; /* balance read failed: let the payment attempt decide */ }
- let res;
- try{
-  res=await w.payFetch()(url,{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"wallet"},body:JSON.stringify(body)});
- }catch(e){
-  const m=String(e.message||e);
-  if(/reject|denied|4001|cancel/i.test(m)) throw new Error("You declined the payment in your wallet. Nothing was charged.");
-  throw new Error("Payment failed: "+m);
- }
- if(res.status===402) throw new Error("The payment wasn't accepted, so nothing was run. Check you have enough USDC on Base and try again.");
- const r=await readJson(res);
- refreshWalletStatus();
- return r;
+ throw new Error("Sign in with your wallet to use your prepaid balance (see above).");
 }
 
 const STATUS_TAG={match:['y','agrees'],partial:['p','partial'],differs:['n','differs'],unknown:['u','no data']};
