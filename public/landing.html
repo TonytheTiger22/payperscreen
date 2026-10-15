@@ -376,7 +376,7 @@ function renderCredits(){
   ?'<div class="row"><span class="e">Your wallet is now on '+esc(short(cur))+', but this balance belongs to '+esc(short(c.address))+'. Log out, then sign in again to use '+esc(short(cur))+'.</span></div>':'';
  const amts=[c.limits.min,5,10,25].filter((v,i,a)=>v>=c.limits.min&&a.indexOf(v)===i);
  el.innerHTML='<span class="bal">'+usd(c.balanceUsd)+'</span> prepaid, enough for about '+checksLeft+' name check'+(checksLeft===1?'':'s')+'.'
-  +' Wallet '+esc(short(c.address))+'.'
+  +' Wallet '+esc(short(c.address))+'. <a href="/cases">Your case queue</a>.'
   +'<div class="row"><button class="amt" id="cr-out">Log out</button> <span style="font-size:12.5px">Logs this wallet out of your balance and disconnects it, so you can sign in with another.</span></div>'
   +warn
   +(c.topupsEnabled

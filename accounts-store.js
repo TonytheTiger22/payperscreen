@@ -50,6 +50,17 @@ export function getOrCreateAccount(email) {
   return row;
 }
 
+// Wallet accounts: anyone who signs in with a wallet (the same signed
+// sign-in message as the prepaid balance) gets an account keyed by that
+// address. The address is stored in the `email` column (lowercase 0x...),
+// which keeps one accounts table and can't collide with a real email.
+export const isWalletAccount = (acct) => /^0x[0-9a-f]{40}$/.test(acct?.email || "");
+export function getOrCreateWalletAccount(address) {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address || "")) return null;
+  const a = getOrCreateAccount(address.toLowerCase());
+  return { id: a.id, email: a.email };
+}
+
 export const listAccounts = () => db.prepare("SELECT * FROM accounts ORDER BY created_at DESC").all();
 
 // Issues a login token for an email address, creating the account on first

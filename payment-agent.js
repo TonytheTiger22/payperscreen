@@ -196,6 +196,9 @@ app.use((req, _res, next) => {
   req.account = accounts.accountForSession(req.cookies.session);
   req.isAdmin = accounts.isAdminSession(req.cookies.admin_session);
   req.creditAddress = credits.addressForSession(req.cookies.credit_session);
+  // Signed in with a wallet but not with an invite link: that wallet is the
+  // account, so its checks land in its own case queue.
+  if (!req.account && req.creditAddress) req.account = accounts.getOrCreateWalletAccount(req.creditAddress);
   next();
 });
 
@@ -306,9 +309,11 @@ app.get("/lists", async (_, res) => {
 
 app.get("/login", (_, res) => res.sendFile(process.cwd() + "/public/login.html"));
 
-// Sign-in is invite-only until real email delivery exists: a login link
-// shown on screen would let anyone open anyone's case queue. Only an admin
-// can mint a link (an invite, valid 7 days, single use), and hands it over.
+// Two ways in: sign in with a wallet (open to anyone; the signed message is
+// proof of the address, see /api/credits/login), or an email invite link
+// minted by an admin (valid 7 days, single use). Self-serve email links stay
+// off until real email delivery exists, since a link shown on screen would
+// let anyone open anyone's case queue.
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "hello@albatrossletter.com";
 const CONTACT_X = (process.env.CONTACT_X || "AlbatrossLetter").replace(/^@/, "");
 const CONTACT_FACEBOOK = process.env.CONTACT_FACEBOOK || "AlbatrossLetter";
@@ -346,7 +351,9 @@ app.get("/api/auth/verify", (req, res) => {
 
 app.post("/api/auth/logout", (req, res) => {
   accounts.destroySession(req.cookies.session);
-  res.setHeader("Set-Cookie", `session=; HttpOnly; Path=/; Max-Age=0${req.secure ? "; Secure" : ""}`);
+  credits.destroySession(req.cookies.credit_session);   // wallet accounts sign in through the balance session
+  res.append("Set-Cookie", `session=; HttpOnly; Path=/; Max-Age=0${req.secure ? "; Secure" : ""}`);
+  res.append("Set-Cookie", creditCookie(req, "", 0));
   res.json({ ok: true });
 });
 
@@ -359,7 +366,8 @@ app.get("/cases", (req, res) => {
 
 app.get("/api/cases", (req, res) => {
   if (!req.account) return res.status(401).json({ ok: false, error: "Not signed in" });
-  res.json({ ok: true, email: req.account.email, alerts: audit.listOpenAlertsForAccount(req.account.id) });
+  res.json({ ok: true, email: req.account.email, wallet: accounts.isWalletAccount(req.account),
+             alerts: audit.listOpenAlertsForAccount(req.account.id) });
 });
 
 // --- Operator admin: one shared code (ADMIN_CODE env var), sees every
