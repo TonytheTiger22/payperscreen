@@ -131,7 +131,7 @@ window.decide=async(i,disposition)=>{
 async function load(){
  const r=await(await fetch("/api/cases")).json();
  if(!r.ok){ location.href="/login"; return; }
- $("who").innerHTML=esc(r.email)+'<button id="signout">Sign out</button>';
+ $("who").innerHTML=esc(r.wallet?"Wallet "+r.email.slice(0,6)+"…"+r.email.slice(-4):r.email)+'<button id="signout">Sign out</button>';
  $("signout").onclick=async()=>{ await fetch("/api/auth/logout",{method:"POST"}); location.href="/login"; };
  rows=r.alerts; draw();
 }

@@ -47,19 +47,66 @@
 </style><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head><body><main>
 <h1>Sign in to your case queue</h1>
-<p class="sub">Accounts are invite-only for now. If you have an invite link, open it to
-   sign in. Each link works once.</p>
+<p class="sub">Possible matches from your checks land in your case queue, for you to clear or escalate.</p>
 
 <div class="card">
- <p style="margin:0 0 14px">Want a case queue for your team? Possible matches from your checks land
-    there for you to clear or escalate.</p>
- <a class="btn btn-ink" id="ask" href="mailto:hello@albatrossletter.com?subject=PayPerScreen%20invite">Ask for an invite</a>
- <p class="note" id="ask-note">Or email <a id="ask-mail" href="mailto:hello@albatrossletter.com">hello@albatrossletter.com</a>.</p>
+ <p style="margin:0 0 14px"><b>Sign in with your wallet.</b> Your wallet address is your account, and it's
+    the same sign-in as your prepaid balance. You sign a message; no funds move.</p>
+ <button class="btn btn-ink" id="wsign" type="button">Sign in with your wallet</button>
+ <div id="wlist"></div>
+ <p class="note" id="wmsg"></p>
+</div>
+
+<div class="card">
+ <p style="margin:0 0 14px">Have an invite link? Open it to sign in with your email. Each link works once.</p>
+ <a class="btn" id="ask" href="mailto:hello@albatrossletter.com?subject=PayPerScreen%20invite">Ask for an invite</a>
+ <p class="note" id="ask-note">Questions? Email <a id="ask-mail" href="mailto:hello@albatrossletter.com">hello@albatrossletter.com</a>.</p>
 </div>
 
 <a class="back" href="/try">Back to the screening tool</a>
 </main>
 <script>
+// Already signed in (wallet or invite)? Go straight to the queue.
+fetch("/api/me").then(r=>r.json()).then(m=>{ if(m.account) location.href="/cases"; }).catch(()=>{});
+
+const $=(id)=>document.getElementById(id);
+const say=(t,err)=>{ const el=$("wmsg"); el.textContent=t; el.style.color=err?"var(--berry)":""; };
+let walletLoaded=null;
+function loadWallet(){
+ if(walletLoaded) return walletLoaded;
+ walletLoaded=new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src="/wallet.js";
+  sc.onload=ok; sc.onerror=()=>{ walletLoaded=null; bad(new Error("Couldn't load the wallet component. Try again.")); };
+  document.head.appendChild(sc); });
+ return walletLoaded;
+}
+async function signInWith(w){
+ $("wlist").innerHTML=""; $("wsign").disabled=true;
+ try{
+  say("Connecting to your wallet…");
+  await window.PPSWallet.connect(w.id,{chooseAccount:true});
+  say("Check your wallet: sign the sign-in message (it moves no funds).");
+  const n=await (await fetch("/api/credits/nonce")).json();
+  const sig=await window.PPSWallet.signMessage(n.message);
+  const r=await (await fetch("/api/credits/login",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({address:window.PPSWallet.address,message:n.message,signature:sig})})).json();
+  if(!r.ok) throw new Error(r.error||"Sign-in failed");
+  location.href="/cases";
+ }catch(e){
+  say(/reject|denied|4001|cancel/i.test(e.message||"")?"Sign-in cancelled in the wallet.":(e.message||String(e)),true);
+  $("wsign").disabled=false;
+ }
+}
+$("wsign").onclick=async()=>{
+ say("");
+ try{ await loadWallet(); }catch(e){ return say(e.message,true); }
+ const found=await window.PPSWallet.listWallets();
+ if(!found.length) return say("No wallet found in this browser. Install MetaMask or Coinbase Wallet, or open this page in your wallet app.",true);
+ if(found.length===1) return signInWith(found[0]);
+ $("wlist").innerHTML='<p class="note">Choose a wallet:</p>';
+ found.forEach(w=>{ const b=document.createElement("button"); b.type="button"; b.className="btn"; b.style.margin="0 8px 8px 0";
+  b.textContent=w.name; b.onclick=()=>signInWith(w); $("wlist").appendChild(b); });
+};
+
 fetch("/api/site-info").then(r=>r.json()).then(i=>{
  if(!i.contactEmail) return;
  document.getElementById("ask").href="mailto:"+i.contactEmail+"?subject=PayPerScreen%20invite";
