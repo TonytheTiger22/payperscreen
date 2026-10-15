@@ -431,7 +431,7 @@ function topUp(amount){
    catch(e){ if(/Not enough USDC/.test(e.message)) throw e; }
    const res=await w.payFetch(amount)("/api/topup",{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"wallet"},body:JSON.stringify({amount})});
    if(res.status===402) throw new Error("The payment wasn't accepted, so nothing was charged.");
-   const r=await res.json();
+   const r=await readJson(res);
    if(!r.ok) throw new Error(r.error||"Top-up failed");
    await loadCredits();
    creditMsg='<span class="ok">Added '+usd(r.credited)+'.</span>'
@@ -447,6 +447,13 @@ function topUp(amount){
 function el_disable(on){ $("credit-panel").querySelectorAll("button").forEach(b=>b.disabled=on); }
 $("pm-balance").onclick=useBalance;
 
+// The site normally answers in JSON. During a redeploy or a timeout the hosting
+// layer answers with an HTML error page instead; say so in plain words.
+async function readJson(res){
+ const t=await res.text();
+ try{ return JSON.parse(t); }
+ catch{ throw new Error("The server didn't respond properly"+(res.status>=500?" (error "+res.status+")":"")+". It may be restarting: try again in a minute."); }
+}
 // POST JSON; in wallet mode the visitor's wallet signs the payment (x402) and we
 // check their USDC balance first so a short balance gives a clear message.
 async function post(url, body, needUsd){
@@ -454,7 +461,7 @@ async function post(url, body, needUsd){
   if(!CREDITS.signedIn) throw new Error("Sign in with your wallet to use your prepaid balance (see above).");
   if(needUsd && CREDITS.balanceUsd+1e-9<needUsd) throw new Error("Not enough prepaid balance: this costs "+Math.round(needUsd*100)+"¢ and you have "+usd(CREDITS.balanceUsd)+". Top up above.");
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"balance"},body:JSON.stringify(body)});
-  const r=await res.json();
+  const r=await readJson(res);
   await loadCredits(); renderCredits();
   return r;
  }
@@ -473,7 +480,7 @@ async function post(url, body, needUsd){
   throw new Error("Payment failed: "+m);
  }
  if(res.status===402) throw new Error("The payment wasn't accepted, so nothing was run. Check you have enough USDC on Base and try again.");
- const r=await res.json();
+ const r=await readJson(res);
  refreshWalletStatus();
  return r;
 }
