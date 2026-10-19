@@ -64,6 +64,24 @@
  .note:empty{display:none}
  td .row{flex-wrap:nowrap}
  td .row button{padding:7px 14px}
+ .actions{display:flex;gap:10px;align-items:center}
+ .actions .btn{padding:10px 18px;font-size:15px}
+ .actions .g{padding:10px 16px}
+ .topbar{align-items:center;margin-bottom:20px}
+ .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+ .stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+ .stat b{display:block;font:600 28px/1.1 var(--display)}
+ .stat span{font-size:13.5px;color:var(--dim)}
+ .stat.alert{background:#FFF2C7}
+ .head{display:flex;justify-content:space-between;align-items:baseline}
+ details>summary{cursor:pointer;list-style:none;margin:0}
+ details>summary::-webkit-details-marker{display:none}
+ details>summary::after{content:" +";}
+ details[open]>summary::after{content:" \2212";}
+ details.more{margin-top:14px}
+ details.more>summary{font-size:14px;color:var(--link);font-weight:600}
+ .tools .grid2>div>label:first-child{margin-top:0}
+ @media (max-width:640px){.grid2{grid-template-columns:1fr}.hide-sm{display:none}}
 </style><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head><body><main>
 
@@ -81,76 +99,69 @@
 <div id="dash" style="display:none">
  <div class="topbar">
   <h1>Admin</h1>
-  <div class="who">admin<button id="signout">Sign out</button></div>
- </div>
- <p class="sub">Every account's open alerts, plus a way to seed test cases without a real payment.</p>
-
- <div class="card">
-  <div class="lbl">Invite a customer</div>
-  <label>Their email</label>
-  <input id="i-email" type="email" placeholder="ops@theirfintech.com">
-  <button class="p" id="i-go">Create invite link</button>
-  <div id="i-err" class="err"></div>
-  <div id="i-out" class="note"></div>
-  <div class="note">Sign-in is invite-only until email delivery is set up. Send them this link yourself. It works once and expires in 7 days.</div>
- </div>
-
- <div class="card">
-  <div class="lbl">Audit trail</div>
-  <div class="note" style="margin-top:0">Every check run on the site, with its tamper-evident record. Admin only.</div>
-  <a class="btn btn-soft" href="/audit" style="margin-top:12px">Open the audit trail</a>
- </div>
-
- <div class="card">
-  <div class="lbl">Create a test case</div>
-  <label>Test account email</label>
-  <input id="t-email" placeholder="test@example.com">
-  <div class="grid2">
-   <div>
-    <label>Check type</label>
-    <select id="t-type">
-     <option value="name">Name</option>
-     <option value="address">Wallet address</option>
-     <option value="email">Email</option>
-     <option value="ip">IP address</option>
-    </select>
-   </div>
-   <div>
-    <label>Severity</label>
-    <select id="t-severity">
-     <option value="high">High / red flag</option>
-     <option value="medium">Medium</option>
-     <option value="low">Low (auto-clears, won't queue)</option>
-    </select>
-   </div>
+  <div class="actions">
+   <a class="btn btn-ink" href="/audit">Audit trail</a>
+   <button class="g" id="signout">Sign out</button>
   </div>
-  <label>Subject</label>
-  <input id="t-subject" placeholder="e.g. Viktor Petrov, or suspicious-site.example">
-  <button class="p" id="t-go">Add test case</button>
-  <div id="t-err" class="err"></div>
-  <div id="t-out" class="note"></div>
  </div>
 
+ <div class="stats" id="stats"></div>
+
  <div class="card wide">
-  <div class="lbl">List refreshes</div>
-  <div id="refresh">Loading&hellip;</div>
-  <div class="note">Every list refreshes once a day, starting a minute after each deploy. A list is flagged if its last attempt failed or it hasn't refreshed for over 26 hours.</div>
- </div>
- <div class="card wide">
-  <div class="lbl">Open alerts, all accounts</div>
+  <div class="lbl">Open alerts</div>
   <div id="tbl">Loading&hellip;</div>
  </div>
+
+ <div class="card wide">
+  <div class="head"><div class="lbl">Recent checks</div><a href="/audit">See all</a></div>
+  <div id="checks">Loading&hellip;</div>
+ </div>
+
+ <div class="card wide">
+  <div class="lbl">Visitors</div>
+  <div id="visits">Loading&hellip;</div>
+ </div>
+
  <div class="card wide">
   <div class="lbl">Prepaid balances</div>
   <div id="credits">Loading&hellip;</div>
-  <div class="note">Each wallet that signed in and topped up. "Outstanding" is prepaid money not yet spent on checks: credit you owe in service.</div>
  </div>
+
  <div class="card wide">
-  <div class="lbl">Site visitors, last 30 days</div>
-  <div id="visits">Loading&hellip;</div>
-  <div class="note">Counted server-side, no cookies, no raw IPs stored. "Visitors" = distinct
-   visitors per day (the same person on two days counts twice). Automated traffic is filtered by user-agent and shown separately; only a coarse browser/device label is kept, never the raw user-agent.</div>
+  <div class="lbl">Lists and API</div>
+  <div id="refresh">Loading&hellip;</div>
  </div>
+
+ <details class="card wide tools">
+  <summary class="lbl">Tools: invite a customer, add a test case</summary>
+  <div class="grid2" style="margin-top:14px;align-items:start">
+   <div>
+    <label>Invite a customer by email</label>
+    <input id="i-email" type="email" placeholder="ops@theirfintech.com">
+    <button class="p" id="i-go">Create invite link</button>
+    <div id="i-err" class="err"></div>
+    <div id="i-out" class="note"></div>
+    <div class="note">Works once, expires in 7 days. Send it yourself.</div>
+   </div>
+   <div>
+    <label>Test case for account</label>
+    <input id="t-email" placeholder="test@example.com">
+    <div class="grid2">
+     <div><label>Type</label>
+      <select id="t-type"><option value="name">Name</option><option value="address">Wallet address</option>
+       <option value="email">Email</option><option value="ip">IP address</option></select></div>
+     <div><label>Severity</label>
+      <select id="t-severity"><option value="high">High</option><option value="medium">Medium</option>
+       <option value="low">Low (auto-clears)</option></select></div>
+    </div>
+    <label>Subject</label>
+    <input id="t-subject" placeholder="e.g. Viktor Petrov">
+    <button class="p" id="t-go">Add test case</button>
+    <div id="t-err" class="err"></div>
+    <div id="t-out" class="note"></div>
+   </div>
+  </div>
+ </details>
  <div id="detail"></div>
 </div>
 
@@ -182,6 +193,18 @@ $("signout").onclick=async()=>{
 
 const TYPE_LABEL={"LANDING":"Name","LANDING-ADDRESS":"Wallet address",
  "LANDING-EMAIL":"Email","LANDING-IP":"IP address"};
+// Summary tiles at the top, filled in as each section loads.
+const STATS={};
+function renderStats(){
+ const t=(v,label,alert)=>v==null?'':'<div class="stat'+(alert?' alert':'')+'"><b>'+v+'</b><span>'+label+'</span></div>';
+ $("stats").innerHTML=t(STATS.visitorsToday,"visitors today")+t(STATS.visitors7,"visitors, last 7 days")
+  +t(STATS.checksToday,"checks today")+t(STATS.ownToday,"visitor checks today (own input)")
+  +t(STATS.alerts,"open alerts",STATS.alerts>0)+t(STATS.lists,"lists",STATS.listsBad)
+  ;
+}
+const today=()=>new Date().toISOString().slice(0,10);
+const EXAMPLE_SUBJECTS=new Set(["maria santos oliveira","viktor petrov","1bvbmseystwetqtfn5au4m4gfg7xjanvn2",
+ "123wbudmsjv4gctdvez6qq6z8nxskrj4kx","0x51e9d833ecae4e8d9d8be17300aee6d3398c135d","info@google.com","test@mailinator.com","1.1.1.1"]);
 function riskPill(r){
  const t=r.top_match;
  if(t==="high") return '<span class="pill bad">high risk</span>';
@@ -192,7 +215,8 @@ function riskPill(r){
 
 let rows=[];
 function draw(){
- if(!rows.length){ $("tbl").innerHTML='<div class="empty">No open alerts anywhere right now.</div>'; return; }
+ STATS.alerts=rows.length; renderStats();
+ if(!rows.length){ $("tbl").innerHTML='<div class="note" style="margin:0">Nothing needs review.</div>'; return; }
  $("tbl").innerHTML='<table><tr><th>Account</th><th>Type</th><th>Subject</th><th>Checked</th>'
  +'<th>Result</th><th>Reference</th><th></th></tr>'
  +rows.map((r,i)=>'<tr><td>'+esc(r.account_email)+'</td><td>'+esc(TYPE_LABEL[r.client_ref]||r.client_ref||"n/a")
@@ -241,6 +265,21 @@ async function loadCases(){
 }
 
 const money=(n)=>"$"+Number(n||0).toFixed(2);
+async function loadChecks(){
+ const res=await fetch("/api/audit"); if(!res.ok){ $("checks").textContent="Couldn't load."; return; }
+ const all=await res.json();
+ const d=today(), todays=all.filter(r=>String(r.performed_at).slice(0,10)===d);
+ const isEx=(r)=>!r.price_paid&&EXAMPLE_SUBJECTS.has(String(r.subject_name).toLowerCase());
+ STATS.checksToday=todays.length; STATS.ownToday=todays.filter(r=>!r.price_paid&&!isEx(r)).length; renderStats();
+ const kind=(r)=>r.price_paid?'<span class="pill ok">paid '+Math.round(r.price_paid*100)+'&cent;</span>'
+   :isEx(r)?'<span class="pill grey">example</span>':'<span class="pill warn">free</span>';
+ const res2=(r)=>r.hit_count?'<span class="pill bad">'+r.hit_count+' hit'+(r.hit_count>1?'s':'')+'</span>':'<span class="pill ok">clear</span>';
+ const rows=all.slice(0,12);
+ $("checks").innerHTML=rows.length?'<table><tr><th>When</th><th class="hide-sm">Type</th><th>Subject</th><th>Result</th><th>Cost</th></tr>'
+  +rows.map(r=>'<tr><td>'+when(r.performed_at)+'</td><td class="hide-sm">'+esc(TYPE_LABEL[r.client_ref]||r.client_ref||"API")+'</td><td style="word-break:break-all">'
+   +esc(r.subject_name)+'</td><td>'+res2(r)+'</td><td>'+kind(r)+'</td></tr>').join('')+'</table>'
+  :'<div class="note" style="margin:0">No checks yet.</div>';
+}
 const shortAddr=(a)=>a?a.slice(0,6)+"…"+a.slice(-4):"";
 const scan=(a)=>'<a href="https://basescan.org/address/'+esc(a)+'" target="_blank" rel="noopener" title="'+esc(a)+'"><code>'+esc(shortAddr(a))+'</code></a>';
 async function loadCredits(){
@@ -253,13 +292,11 @@ async function loadCredits(){
  $("credits").innerHTML=(r.topupsEnabled?'':'<div class="err">Top-ups are disabled on this deploy (DB_PATH not set).</div>')
   +(sw.prepaidDirect===false?'<div class="err">Prepaid checks are still paid on-chain from the site wallet below, so they fail when it runs dry. '
      +'Fix: set the same INTERNAL_API_KEY (32+ random characters) on both Railway services; checks then come straight off customers\' balances.</div>':'')
-  +(sw.address?'<div class="kv"><span>Site wallet ('+(sw.prepaidDirect?'only used for admin test checks':'pays the API for prepaid checks')+')</span><b>'+scan(sw.address)+' '
+  +(sw.address&&!sw.prepaidDirect?'<div class="kv"><span>Site wallet ('+(sw.prepaidDirect?'only used for admin test checks':'pays the API for prepaid checks')+')</span><b>'+scan(sw.address)+' '
     +(sw.usdc==null?'balance unavailable':money(sw.usdc)+' USDC on Base')+'</b></div>'
     +(swLow&&!sw.prepaidDirect?'<div class="err">Low: prepaid checks fail when this wallet can\'t pay. Send USDC on Base to '+esc(sw.address)+'.</div>':''):'')
-  +'<div class="kv"><span>Wallets</span><b>'+t.wallets+'</b></div>'
-  +'<div class="kv"><span>Topped up (all time)</span><b>'+money(t.topups)+'</b></div>'
-  +'<div class="kv"><span>Spent on checks</span><b>'+money(t.spent)+' across '+t.checks+' checks</b></div>'
-  +'<div class="kv"><span>Outstanding balances</span><b>'+money(t.outstanding)+'</b></div>'
+  +'<div class="kv"><span>'+t.wallets+' wallet'+(t.wallets===1?'':'s')+', topped up '+money(t.topups)+'</span><b>'+money(t.spent)+' spent on '+t.checks+' checks, '+money(t.outstanding)+' unspent</b></div>'
+  +'<details class="more"><summary>Wallets and activity</summary>'
   +(r.wallets.length?'<table><tr><th>Wallet</th><th>Balance</th><th>Topped up</th><th>Spent</th><th>Checks</th><th>Last active</th></tr>'
     +r.wallets.map(w=>'<tr><td>'+scan(w.address)+'</td><td><b>'+money(w.balance)+'</b></td><td>'+money(w.topups)+'</td><td>'
       +money(w.spent-w.refunds)+'</td><td>'+w.checks+'</td><td>'+esc(when(w.last_seen))+'</td></tr>').join('')+'</table>'
@@ -267,7 +304,7 @@ async function loadCredits(){
   +(r.activity.length?'<div class="lbl" style="margin-top:16px">Recent activity</div><table><tr><th>When</th><th>Wallet</th><th>What</th><th>Amount</th><th>Receipt</th></tr>'
     +r.activity.map(a=>'<tr><td>'+esc(when(a.created_at))+'</td><td>'+scan(a.address)+'</td><td>'+esc(KIND[a.kind]||a.kind)
       +(a.kind==="charge"&&a.label?': '+esc(a.label):'')+'</td><td>'+(a.delta>0?'+':'&minus;')+money(Math.abs(a.delta))+'</td><td>'
-      +(a.tx?'<a href="https://basescan.org/tx/'+esc(a.tx)+'" target="_blank" rel="noopener">'+esc(a.tx.slice(0,10))+'… &#8599;</a>':'')+'</td></tr>').join('')+'</table>':'');
+      +(a.tx?'<a href="https://basescan.org/tx/'+esc(a.tx)+'" target="_blank" rel="noopener">'+esc(a.tx.slice(0,10))+'… &#8599;</a>':'')+'</td></tr>').join('')+'</table>':'')+'</details>';
 }
 const LIST_NAME={OFAC:"OFAC SDN",UN:"UN Consolidated",EU:"EU Consolidated",UK:"UK Sanctions List",
  "OFAC-SDN-CRYPTO":"OFAC wallet addresses","STABLECOIN-FREEZE":"Stablecoin freezes"};
@@ -283,7 +320,7 @@ function usageTable(r){
  return '<div class="lbl" style="margin-top:16px">Usage by client</div>'
   +(rows.length?'<table><tr><th>Client</th><th>Paid checks</th><th>Free calls</th><th>Last call</th><th>Paid checks by endpoint</th></tr>'+rows.join('')+'</table>'
    :'<div class="note">No calls recorded yet.</div>')
-  +'<div class="note">Counted from now on. Paid checks count only when the payment settled (or came off a prepaid balance). Free calls are counted for the MCP server only.</div>';
+  ;
 }
 function bazaarTable(r){
  if(!r.bazaar||!r.bazaar.length) return '';
@@ -296,7 +333,7 @@ function bazaarTable(r){
    +'</td><td>'+(b.lastSettledAt?esc(when(b.lastSettledAt)):'never')+'</td><td>'
    +(b.status?(PILL[b.status]||'<span class="pill warn">'+esc(b.status)+'</span>'):(b.settledPayments?'<span class="pill warn">no answer</span>':'<span class="pill warn">not yet</span>'))
    +'</td><td>'+esc(why(b)||(b.settledPayments?'':'Needs one paid call before Coinbase can list it.'))+'</td></tr>').join('')
-  +'</table><div class="note">Counted from now on (earlier payments aren\'t included). Coinbase decides each listing after a paid call; a route with no paid call for 30 days drops off.</div>';
+  +'</table>';
 }
 async function loadRefresh(){
  const r=await(await fetch("/api/admin/refresh-status")).json();
@@ -308,15 +345,23 @@ async function loadRefresh(){
  const partial=(l)=>{const res=l.detail&&l.detail.result; if(!res) return "";
   const bad=Object.entries(res).filter(([,x])=>x.error||x.done===false);
   return bad.map(([k,x])=>k+": "+(x.error||"not finished, resumes next run")).join("; ");};
+ const bad=r.lists.filter(l=>!l.ok||stale(l.attemptedAt));
+ STATS.lists=r.lists.length?(bad.length?bad.length+" of "+r.lists.length+" need a look":"all "+r.lists.length+" ok"):null;
+ STATS.listsBad=bad.length>0; renderStats();
+ const paidCalls=(r.usageByClient||[]).filter(y=>y.paid).reduce((a,y)=>a+y.calls,0);
  $("refresh").innerHTML=(warn.length?'<div class="err">'+warn.map(esc).join("<br>")+'</div>':'')
-  +(r.run&&r.run.running?'<div class="note">A refresh is running now (started '+esc(when(r.run.startedAt))+').</div>':'')
+  +(r.run&&r.run.running?'<div class="note" style="margin:0 0 8px">A refresh is running now (started '+esc(when(r.run.startedAt))+').</div>':'')
+  +'<div class="kv"><span>Sanctions and wallet lists</span><b>'+(r.lists.length?(bad.length?bad.map(l=>esc(LIST_NAME[l.source]||l.source)).join(", ")+' '+(bad.length===1?'needs':'need')+' a look':'All '+r.lists.length+' refreshed in the last day'):'No refresh yet')+'</b></div>'
+  +'<div class="kv"><span>Paid API calls (x402 and MCP)</span><b>'+paidCalls+'</b></div>'
+  +'<details class="more"><summary>Details: lists, usage, Bazaar, stablecoin freezes</summary>'
   +(r.lists.length?'<table><tr><th>List</th><th>Status</th><th>Last attempt</th><th>Records</th><th>Notes</th></tr>'
    +r.lists.map(l=>'<tr><td>'+esc(LIST_NAME[l.source]||l.source)+'</td><td>'+pill(l)+'</td><td>'+esc(when(l.attemptedAt))
     +'</td><td>'+(l.records==null?'n/a':l.records)+'</td><td>'+esc(l.error||partial(l)||"")+'</td></tr>').join('')+'</table>'
    :'<div class="note">No refresh has been recorded yet. The first one starts a minute after the API deploys.</div>')
   +bazaarTable(r)+usageTable(r)
   +(r.stablecoinFreezesByChain.length?'<div class="lbl" style="margin-top:16px">Stablecoin freezes by chain</div><table><tr><th>Token</th><th>Chain</th><th>Frozen wallets</th></tr>'
-   +r.stablecoinFreezesByChain.map(f=>'<tr><td>'+esc(f.token)+'</td><td>'+esc(f.chain)+'</td><td>'+f.n+'</td></tr>').join('')+'</table>':'');
+   +r.stablecoinFreezesByChain.map(f=>'<tr><td>'+esc(f.token)+'</td><td>'+esc(f.chain)+'</td><td>'+f.n+'</td></tr>').join('')+'</table>':'')
+  +'</details>';
 }
 async function loadVisits(){
  const r=await(await fetch("/api/admin/visits?days=30")).json();
@@ -324,16 +369,18 @@ async function loadVisits(){
  const t=r.totals;
  const list=(rows,k)=>rows.length?'<table><tr><th>'+(k==="path"?"Page":"Referrer")+'</th><th>Views</th></tr>'
    +rows.map(x=>'<tr><td>'+esc(x[k])+'</td><td>'+x.views+'</td></tr>').join('')+'</table>':'<div class="note">None yet.</div>';
- $("visits").innerHTML='<div class="kv"><span>Page views</span><b>'+t.views+'</b></div>'
-  +'<div class="kv"><span>Visitor-days</span><b>'+t.visitor_days+'</b></div>'
-  +(r.perDay.length?'<table><tr><th>Day</th><th>Views</th><th>Visitors</th></tr>'
-   +r.perDay.map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+d.views+'</td><td>'+d.visitors+'</td></tr>').join('')+'</table>'
-   :'<div class="note">No visits recorded yet.</div>')
-  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:10px"><div>'+list(r.pages,"path")+'</div><div>'+list(r.referrers,"referrer")+'</div></div>'
+ const pd=r.perDay||[], d=today();
+ STATS.visitorsToday=(pd.find(x=>x.day===d)||{}).visitors||0;
+ STATS.visitors7=pd.filter(x=>Date.now()-new Date(x.day)<7*864e5).reduce((a,x)=>a+x.visitors,0); renderStats();
+ const max=Math.max(1,...pd.map(x=>x.visitors));
+ $("visits").innerHTML=(pd.length?'<table><tr><th>Day</th><th>Visitors</th><th class="hide-sm"></th><th>Views</th></tr>'
+   +pd.slice(0,7).map(x=>'<tr><td>'+esc(x.day)+'</td><td><b>'+x.visitors+'</b></td><td class="hide-sm" style="width:45%"><div style="height:8px;border-radius:4px;background:var(--link);opacity:.55;width:'+Math.round(x.visitors/max*100)+'%"></div></td><td>'+x.views+'</td></tr>').join('')+'</table>'
+   :'<div class="note" style="margin:0">No visits recorded yet.</div>')
+  +'<details class="more"><summary>Older days, pages, referrers and devices (30 days: '+t.views+' views)</summary>'+(pd.length>7?'<table><tr><th>Day</th><th>Visitors</th><th>Views</th></tr>'+pd.slice(7).map(x=>'<tr><td>'+esc(x.day)+'</td><td>'+x.visitors+'</td><td>'+x.views+'</td></tr>').join('')+'</table>':'')
+  +'<div class="grid2" style="gap:20px;margin-top:10px"><div>'+list(r.pages,"path")+'</div><div>'+list(r.referrers,"referrer")+'</div></div>'
   +'<div style="margin-top:14px">'+(r.clients.length?'<table><tr><th>Browser and device</th><th>Visitors</th><th>Views</th></tr>'
    +r.clients.map(c=>'<tr><td>'+esc(c.client)+'</td><td>'+c.visitors+'</td><td>'+c.views+'</td></tr>').join('')+'</table>':'')+'</div>'
-  +'<div class="note">Filtered out as automated (bots, link previews, scanners; not in the numbers above): '
-  +r.automated.views+' views from '+r.automated.visitors+' sources.</div>';
+  +'<div class="note">Bots and link previews left out: '+r.automated.views+' views from '+r.automated.visitors+' sources.</div></details>';
 }
 $("i-go").onclick=async()=>{
  const email=$("i-email").value.trim();
@@ -348,7 +395,7 @@ $("i-go").onclick=async()=>{
  }catch(e){$("i-err").textContent=String(e);}
  finally{$("i-go").disabled=false;}
 };
-function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadCredits(); loadVisits(); loadRefresh(); }
+function showDash(){ $("gate").style.display="none"; $("dash").style.display=""; loadCases(); loadChecks(); loadCredits(); loadVisits(); loadRefresh(); }
 function showGate(){ $("gate").style.display=""; $("dash").style.display="none"; }
 
 fetch("/api/admin/me").then(r=>r.json()).then(r=>{ if(r.isAdmin) showDash(); });
