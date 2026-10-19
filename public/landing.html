@@ -132,8 +132,8 @@
    <div class="pay-way" style="--c:var(--sky)"><b>Top up once</b><span>Sign in with your wallet and add USDC on Base. One approval in your wallet.</span></div>
    <div class="pay-way" style="--c:var(--mint)"><b>Run checks</b><span>Each check comes off your balance, with no wallet popup.</span></div>
   </div>
-  <p class="free-note"><b>Try it free first.</b> The example buttons under each check run a real
-     check on a real list, at no cost and with no wallet needed.</p>
+  <p class="free-note"><b>Try it free first.</b> You get <span id="free-left">3 free checks</span> a day
+     with your own input, no wallet needed. The example buttons under each check are always free.</p>
   <p class="small">New to paying per check? <a href="/#x402">Here's how it works</a>.
      Want it automatic? <a href="/docs">The API docs</a> show how to call the same checks from your own system.</p>
  </div>
@@ -300,7 +300,20 @@ const FREE_EX=new Set([
  ["/api/check-ip",{ip:"1.1.1.1"}],
 ].map(([p,q])=>exKey(p,q)));
 // Cost line for a result: "Free example" when it was one.
-const costOf=(r,price)=>(r.ledger&&r.ledger.lines&&r.ledger.lines.slice(-1)[0]||{}).example?"Free example":price;
+const costOf=(r,price)=>{
+ const l=(r.ledger&&r.ledger.lines&&r.ledger.lines.slice(-1)[0])||{};
+ if(!l.example) return price;
+ if(l.freeLeft==null) return "Free example";
+ return "Free ("+l.freeLeft+" of "+l.freePerDay+" free checks left today)";
+};
+async function loadFreeLeft(){
+ try{
+  const f=await (await fetch("/api/free-checks")).json();
+  if(f.ok&&$("free-left")) $("free-left").textContent=f.left===f.perDay?f.perDay+" free checks"
+   :(f.left===0?"no free checks left today (back tomorrow)":f.left+" of "+f.perDay+" free checks left");
+ }catch{}
+}
+loadFreeLeft();
 
 // ---------- who pays: the visitor's own wallet, or their prepaid balance ----------
 let PAY_MODE="balance", walletLoaded=null, afterConnect=null;
@@ -454,9 +467,12 @@ async function readJson(res){
 }
 // POST JSON; the check is deducted from the visitor's prepaid balance.
 async function post(url, body, needUsd){
- if(!CREDITS.signedIn && FREE_EX.has(exKey(url, body))){
+ if(!CREDITS.signedIn){   // free: the examples, plus a few checks of your own a day
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"example"},body:JSON.stringify(body)});
-  return readJson(res);
+  const r=await readJson(res);
+  if(r&&r.error) r.error=String(r.error).replace(/^Error:\s*/,"");
+  loadFreeLeft();
+  return r;
  }
  if(PAY_MODE==="balance"){
   if(!CREDITS.signedIn) throw new Error("To check your own input, sign in with your wallet and top up (see above). The example buttons run free.");

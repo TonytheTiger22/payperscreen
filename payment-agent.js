@@ -5,6 +5,7 @@ import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 import { marked } from "marked";
 import { readFileSync } from "fs";
+import { createHash, randomBytes } from "crypto";
 import * as audit from "./audit-store.js";
 import * as accounts from "./accounts-store.js";
 import * as analytics from "./analytics-store.js";
@@ -99,7 +100,7 @@ async function walletBuy(req, path, params, label, price) {
 async function buyQuery(path, params, label, price, req) {
   if (req && isWallet(req)) return walletBuy(req, path, params, label, price);
   if (req && isBalance(req)) return balanceBuy(req, path, params, label, price);
-  if (req && isExample(req)) return exampleBuy(path, params, label);
+  if (req && isExample(req)) return exampleBuy(path, params, label, req);
   // The site's own wallet never pays for an anonymous visitor's check: only for a
   // signed-in admin testing, or (via balanceBuy) after a prepaid balance was charged.
   if (!req?.isAdmin) throw new Error("Connect a wallet, or sign in to your prepaid balance, to pay for this check.");
@@ -148,10 +149,39 @@ const FREE_EXAMPLES = new Set([
   ["/screen-ip", { ip: "1.1.1.1" }],
 ].map(([p, q]) => exampleKey(p, q)));
 const exampleCache = new Map();
-async function exampleBuy(path, params, label) {
+// Besides the examples, each visitor gets FREE_PER_DAY checks of their own
+// input a day (counted per IP, UTC day, in memory: a redeploy resets it), and
+// all visitors together at most FREE_TOTAL_PER_DAY, so a bot can't run up the
+// upstream costs. Raw IPs are never stored, only a salted hash for the day.
+const FREE_PER_DAY = Number(process.env.FREE_CHECKS_PER_DAY || 3);
+const FREE_TOTAL_PER_DAY = Number(process.env.FREE_CHECKS_TOTAL_PER_DAY || 300);
+const freeUse = { day: "", total: 0, byVisitor: new Map() };
+const FREE_SALT = randomBytes(16).toString("hex");
+function freeAllowance(req) {
+  const day = new Date().toISOString().slice(0, 10);
+  if (freeUse.day !== day) { freeUse.day = day; freeUse.total = 0; freeUse.byVisitor.clear(); }
+  const who = createHash("sha256").update(`${req.ip}|${FREE_SALT}`).digest("hex").slice(0, 16);
+  const used = freeUse.byVisitor.get(who) || 0;
+  return { who, used, left: Math.max(0, FREE_PER_DAY - used) };
+}
+async function exampleBuy(path, params, label, req) {
   const key = exampleKey(path, params);
-  if (!FREE_EXAMPLES.has(key))
-    throw new Error("Free runs are for the example inputs only. Sign in with your wallet and top up to check your own.");
+  if (!FREE_EXAMPLES.has(key)) {
+    const a = freeAllowance(req);
+    if (a.left <= 0) { const e = new Error(`You've used your ${FREE_PER_DAY} free checks for today. Sign in with your wallet and top up to keep going, or come back tomorrow. The example buttons stay free.`); e.code = "FREE_LIMIT"; throw e; }
+    if (freeUse.total >= FREE_TOTAL_PER_DAY) { const e = new Error("Today's free checks have all been used. Sign in with your wallet and top up to keep going, or come back tomorrow. The example buttons stay free."); e.code = "FREE_LIMIT"; throw e; }
+    if (!INTERNAL_KEY) throw new Error("Free checks are unavailable right now. Please try again later.");
+    const t0 = Date.now();
+    const r = await fetch(`${API}/internal${path}?${new URLSearchParams(params)}`,
+      { headers: { "x-internal-key": INTERNAL_KEY }, signal: AbortSignal.timeout(30000) });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body?.error || `The check failed (HTTP ${r.status}). It didn't count against your free checks.`);
+    freeUse.byVisitor.set(a.who, a.used + 1); freeUse.total++;   // only successful checks count
+    const line = { label: label + " (free daily check)", price: 0, ms: Date.now() - t0, tx: null, example: true,
+                   freeLeft: a.left - 1, freePerDay: FREE_PER_DAY,
+                   at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) };
+    return { body, line };
+  }
   const hit = exampleCache.get(key);
   let body = hit && Date.now() - hit.at < 3600_000 ? hit.body : null;
   const t0 = Date.now();
@@ -381,6 +411,8 @@ app.post("/api/auth/request-link", (req, res) => {
 });
 
 // Free: contact details for page footers (set CONTACT_EMAIL / CONTACT_X on Railway).
+// How many free checks this visitor has left today (shown on /try).
+app.get("/api/free-checks", (req, res) => { const a = freeAllowance(req); res.json({ ok: true, left: a.left, perDay: FREE_PER_DAY }); });
 app.get("/api/site-info", (_, res) => res.json({ contactEmail: CONTACT_EMAIL, x: CONTACT_X || null, facebook: CONTACT_FACEBOOK || null }));
 
 app.get("/api/auth/verify", (req, res) => {
