@@ -343,6 +343,11 @@ for (const [route, sample] of Object.entries(SAMPLES)) {
 
 // Crawlers and agent fetchers check robots.txt first; without one some of
 // them refuse the host outright. The paid routes are still paywalled by x402.
+// Directory reviewers (x402-list.com) try /docs and /lists on the API host
+// itself; send them to the website pages the index advertises, not a 404.
+for (const path of ["/docs", "/lists", "/llms.txt", "/methodology", "/privacy"])
+  app.get(path, (_, res) => res.redirect(301, "https://payperscreen.com" + path));
+
 app.get("/robots.txt", (_, res) => res.type("text/plain").send("User-agent: *\nAllow: /\n"));
 
 // Free index for whoever lands on the bare API host (often an agent that
