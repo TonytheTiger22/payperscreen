@@ -34,7 +34,7 @@ const listVersionOf = (body) => Array.isArray(body?.listVersions) && body.listVe
 const ledger = { spent: 0, lines: [] };
 // What the browser sees as "ledger": the site's running spend normally; in wallet mode
 // just the visitor's own call (so the site's spend isn't touched or shown).
-const ledgerFor = (req, line) => (isWallet(req) || isBalance(req)) ? { spent: line.price, lines: [line] } : ledger;
+const ledgerFor = (req, line) => (isWallet(req) || isBalance(req) || isExample(req)) ? { spent: line.price, lines: [line] } : ledger;
 const txOf = (h) => (JSON.stringify(h ?? {}).match(/0x[0-9a-fA-F]{64}/) || [])[0] || null;
 
 // ---- Wallet mode -----------------------------------------------------------
@@ -48,6 +48,9 @@ const isWallet = (req) => String(req?.headers?.["x-pay-mode"] || "").toLowerCase
 // (see credits-store.js). Each check is deducted from it first, then the
 // site wallet pays the API exactly as in the default mode — no popup.
 const isBalance = (req) => String(req?.headers?.["x-pay-mode"] || "").toLowerCase() === "balance";
+// Example mode (X-Pay-Mode: example): a free run of one of the example inputs
+// offered on /try, so a visitor sees a real result before topping up.
+const isExample = (req) => String(req?.headers?.["x-pay-mode"] || "").toLowerCase() === "example";
 const PAY_HEADERS_IN = ["payment-signature", "x-payment"];
 const PAY_HEADERS_OUT = ["payment-required", "payment-response", "x-payment-response"];
 
@@ -96,6 +99,7 @@ async function walletBuy(req, path, params, label, price) {
 async function buyQuery(path, params, label, price, req) {
   if (req && isWallet(req)) return walletBuy(req, path, params, label, price);
   if (req && isBalance(req)) return balanceBuy(req, path, params, label, price);
+  if (req && isExample(req)) return exampleBuy(path, params, label);
   // The site's own wallet never pays for an anonymous visitor's check: only for a
   // signed-in admin testing, or (via balanceBuy) after a prepaid balance was charged.
   if (!req?.isAdmin) throw new Error("Connect a wallet, or sign in to your prepaid balance, to pay for this check.");
@@ -118,6 +122,49 @@ async function internalBuy(path, params, label, price) {
                  at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) };
   ledger.spent = +(ledger.spent + price).toFixed(4);
   ledger.lines.push(line);
+  return { body, line };
+}
+
+// ---- Free example checks ------------------------------------------------------
+// Anonymous visitors can run the example inputs offered on /try without paying,
+// so the first thing they see is a real result, not a wallet prompt. Only these
+// exact inputs run free (must match public/landing.html); anything else still
+// needs a prepaid balance. Results are cached for an hour, so repeat clicks
+// cost nothing upstream. Runs through the API's internal route: no payment.
+function exampleKey(path, params) {
+  const q = Object.entries(params || {})
+    .map(([k, v]) => [k, String(v ?? "").trim().toLowerCase()])
+    .filter(([, v]) => v).sort(([a], [b]) => a.localeCompare(b));
+  return path + "?" + new URLSearchParams(q).toString();
+}
+const FREE_EXAMPLES = new Set([
+  ["/screen", { name: "Maria Santos Oliveira", country: "Portugal", dob: "1981-04-12", type: "Individual" }],
+  ["/screen", { name: "Viktor Petrov", country: "Bulgaria", dob: "1978-09-03", type: "Individual" }],
+  ["/screen-address", { address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2" }],
+  ["/screen-address", { address: "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX" }],
+  ["/screen-address", { address: "0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D" }],
+  ["/screen-email", { email: "info@google.com" }],
+  ["/screen-email", { email: "test@mailinator.com" }],
+  ["/screen-ip", { ip: "1.1.1.1" }],
+].map(([p, q]) => exampleKey(p, q)));
+const exampleCache = new Map();
+async function exampleBuy(path, params, label) {
+  const key = exampleKey(path, params);
+  if (!FREE_EXAMPLES.has(key))
+    throw new Error("Free runs are for the example inputs only. Sign in with your wallet and top up to check your own.");
+  const hit = exampleCache.get(key);
+  let body = hit && Date.now() - hit.at < 3600_000 ? hit.body : null;
+  const t0 = Date.now();
+  if (!body) {
+    if (!INTERNAL_KEY) throw new Error("Free examples are unavailable right now. Please try again later.");
+    const r = await fetch(`${API}/internal${path}?${new URLSearchParams(params)}`,
+      { headers: { "x-internal-key": INTERNAL_KEY }, signal: AbortSignal.timeout(30000) });
+    body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body?.error || `The example check failed (HTTP ${r.status}). Please try again.`);
+    exampleCache.set(key, { at: Date.now(), body });
+  }
+  const line = { label: label + " (free example)", price: 0, ms: Date.now() - t0, tx: null, example: true,
+                 at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) };
   return { body, line };
 }
 
@@ -611,9 +658,10 @@ app.post("/api/screen-free", async (req, res) => {
       topMatch: b.hitCount ? b.hits[0].name : null,
       clientRef: "LANDING",
       accountId: req.account?.id ?? null,
-      pricePaid: 0.02,
+      pricePaid: screen.line.price,
       paymentTx: screen.line.tx,
     });
+    if (screen.line.example) audit.dispose(rec.reference, "example", "system");  // free example: never a case to review
 
     if (b.hitCount === 0) {
       audit.dispose(rec.reference, "no_match_auto", "system");
@@ -673,9 +721,10 @@ app.post("/api/screen-address", async (req, res) => {
                 .filter(Boolean).join("; ") || null,
       clientRef: "LANDING-ADDRESS",
       accountId: req.account?.id ?? null,
-      pricePaid: 0.02,
+      pricePaid: screen.line.price,
       paymentTx: screen.line.tx,
     });
+    if (screen.line.example) audit.dispose(rec.reference, "example", "system");  // free example: never a case to review
 
     if (!flagged) audit.dispose(rec.reference, "no_match_auto", "system");
 
@@ -706,9 +755,10 @@ app.post("/api/check-email", async (req, res) => {
       topMatch: b.riskLevel,
       clientRef: "LANDING-EMAIL",
       accountId: req.account?.id ?? null,
-      pricePaid: 0.02,
+      pricePaid: check.line.price,
       paymentTx: check.line.tx,
     });
+    if (check.line.example) audit.dispose(rec.reference, "example", "system");  // free example: never a case to review
 
     if (b.riskLevel === "low") audit.dispose(rec.reference, "no_match_auto", "system");
 
@@ -737,9 +787,10 @@ app.post("/api/check-ip", async (req, res) => {
       topMatch: b.riskLevel,
       clientRef: "LANDING-IP",
       accountId: req.account?.id ?? null,
-      pricePaid: 0.01,
+      pricePaid: check.line.price,
       paymentTx: check.line.tx,
     });
+    if (check.line.example) audit.dispose(rec.reference, "example", "system");  // free example: never a case to review
 
     if (b.riskLevel === "low") audit.dispose(rec.reference, "no_match_auto", "system");
 

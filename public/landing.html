@@ -52,6 +52,7 @@
  @media (max-width:420px){.grid2{grid-template-columns:1fr;gap:0}}
 
  .examples{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+ .free-note{background:var(--mint);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:16px 0 0;font-size:15.5px}
  .ex{font:700 14px var(--body);color:var(--ink);cursor:pointer;background:var(--butter);border:0;
      padding:6px 12px;border-radius:999px}
  .ex:hover{background:#FFEEB2}
@@ -131,6 +132,8 @@
    <div class="pay-way" style="--c:var(--sky)"><b>Top up once</b><span>Sign in with your wallet and add USDC on Base. One approval in your wallet.</span></div>
    <div class="pay-way" style="--c:var(--mint)"><b>Run checks</b><span>Each check comes off your balance, with no wallet popup.</span></div>
   </div>
+  <p class="free-note"><b>Try it free first.</b> The example buttons under each check run a real
+     check on a real list, at no cost and with no wallet needed.</p>
   <p class="small">New to paying per check? <a href="/#x402">Here's how it works</a>.
      Want it automatic? <a href="/docs">The API docs</a> show how to call the same checks from your own system.</p>
  </div>
@@ -197,7 +200,8 @@
    <input id="email" placeholder="e.g. someone@example.com">
 
    <div class="examples">
-    <span class="ex" id="ex-email">Try an example address</span>
+    <span class="ex" id="ex-email">Try a real company address</span>
+    <span class="ex" id="ex-email-bad">Try a throwaway address</span>
    </div>
 
    <button class="go" id="go-email">Check this email</button>
@@ -246,11 +250,11 @@ const esc=(s)=>String(s==null?"":s).replace(/[&<>"']/g,(c)=>ESC_MAP[c]);
 
 $("ex-clean").onclick=()=>{
  $("name").value="Maria Santos Oliveira"; $("country").value="Portugal";
- $("dob").value="1981-04-12"; $("type").value="Individual";
+ $("dob").value="1981-04-12"; $("type").value="Individual"; $("go").click();
 };
 $("ex-hit").onclick=()=>{
  $("name").value="Viktor Petrov"; $("country").value="Bulgaria";
- $("dob").value="1978-09-03"; $("type").value="Individual";
+ $("dob").value="1978-09-03"; $("type").value="Individual"; $("go").click();
 };
 
 const TABS=["name","address","email","ip"];
@@ -267,15 +271,36 @@ $("tab-address").onclick=()=>showTab("address");
 $("tab-email").onclick=()=>showTab("email");
 $("tab-ip").onclick=()=>showTab("ip");
 
-$("ex-addr-clean").onclick=()=>{ $("address").value="1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"; };
-$("ex-addr-hit").onclick=()=>{ $("address").value="123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"; };
+$("ex-addr-clean").onclick=()=>{ $("address").value="1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"; $("go-address").click(); };
+$("ex-addr-hit").onclick=()=>{ $("address").value="123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"; $("go-address").click(); };
 // Named by the FBI as holding stolen Bybit funds (IC3 PSA 250226).
-$("ex-addr-hack").onclick=()=>{ $("address").value="0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D"; };
-$("ex-email").onclick=()=>{ $("email").value="info@google.com"; };
+$("ex-addr-hack").onclick=()=>{ $("address").value="0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D"; $("go-address").click(); };
+$("ex-email").onclick=()=>{ $("email").value="info@google.com"; $("go-email").click(); };
+$("ex-email-bad").onclick=()=>{ $("email").value="test@mailinator.com"; $("go-email").click(); };
 // A known Tor exit node or blocklisted IP would make a better "hit"
 // example, but both lists rotate constantly, so a hardcoded one would go
 // stale. 1.1.1.1 is a stable, real public IP that should come back clean.
-$("ex-ip").onclick=()=>{ $("ip").value="1.1.1.1"; };
+$("ex-ip").onclick=()=>{ $("ip").value="1.1.1.1"; $("go-ip").click(); };
+
+// Example inputs run free for visitors without a balance (the server allows
+// exactly these; keep in sync with FREE_EXAMPLES in payment-agent.js).
+function exKey(path,q){
+ const e=Object.entries(q).map(([k,v])=>[k,String(v??"").trim().toLowerCase()]).filter(([,v])=>v)
+  .sort(([a],[b])=>a.localeCompare(b));
+ return path+"?"+new URLSearchParams(e).toString();
+}
+const FREE_EX=new Set([
+ ["/api/screen-free",{name:"Maria Santos Oliveira",country:"Portugal",dob:"1981-04-12",type:"Individual"}],
+ ["/api/screen-free",{name:"Viktor Petrov",country:"Bulgaria",dob:"1978-09-03",type:"Individual"}],
+ ["/api/screen-address",{address:"1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"}],
+ ["/api/screen-address",{address:"123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX"}],
+ ["/api/screen-address",{address:"0x51E9d833Ecae4E8D9D8Be17300AEE6D3398C135D"}],
+ ["/api/check-email",{email:"info@google.com"}],
+ ["/api/check-email",{email:"test@mailinator.com"}],
+ ["/api/check-ip",{ip:"1.1.1.1"}],
+].map(([p,q])=>exKey(p,q)));
+// Cost line for a result: "Free example" when it was one.
+const costOf=(r,price)=>(r.ledger&&r.ledger.lines&&r.ledger.lines.slice(-1)[0]||{}).example?"Free example":price;
 
 // ---------- who pays: the visitor's own wallet, or their prepaid balance ----------
 let PAY_MODE="balance", walletLoaded=null, afterConnect=null;
@@ -429,8 +454,12 @@ async function readJson(res){
 }
 // POST JSON; the check is deducted from the visitor's prepaid balance.
 async function post(url, body, needUsd){
+ if(!CREDITS.signedIn && FREE_EX.has(exKey(url, body))){
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"example"},body:JSON.stringify(body)});
+  return readJson(res);
+ }
  if(PAY_MODE==="balance"){
-  if(!CREDITS.signedIn) throw new Error("Sign in with your wallet to use your prepaid balance (see above).");
+  if(!CREDITS.signedIn) throw new Error("To check your own input, sign in with your wallet and top up (see above). The example buttons run free.");
   if(needUsd && CREDITS.balanceUsd+1e-9<needUsd) throw new Error("Not enough prepaid balance: this costs "+Math.round(needUsd*100)+"¢ and you have "+usd(CREDITS.balanceUsd)+". Top up above.");
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","X-Pay-Mode":"balance"},body:JSON.stringify(body)});
   const r=await readJson(res);
@@ -480,7 +509,7 @@ $("go").onclick=async()=>{
 
   if(!r.ok){$("err").textContent=r.error||"Something went wrong.";return;}
 
-  const cost="2¢";
+  const cost=costOf(r,"2¢");
   const ms=r.ledger.lines.slice(-1)[0]?.ms ?? 0;
 
   if(r.outcome==="clear"){
@@ -545,7 +574,7 @@ $("go-address").onclick=async()=>{
   const fz=(b.frozenByIssuer&&b.frozenByIssuer.listed)?b.frozenByIssuer.matches:[];
   const base='<div class="kv"><span>Address</span><b style="word-break:break-all">'+esc(b.address)+'</b></div>'
     +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-    +'<div class="kv"><span>Cost</span><b>2¢, '+ms+' ms</b></div>';
+    +'<div class="kv"><span>Cost</span><b>'+costOf(r,"2¢")+', '+ms+' ms</b></div>';
   let html='';
   if(b.sanctioned){
    html+='<div class="banner warn">Listed on OFAC’s sanctioned digital-currency address list ('+esc(b.matches.map(m=>m.asset).join(", "))+')</div>';
@@ -616,7 +645,7 @@ $("go-email").onclick=async()=>{
    +'<div class="meta">'+esc(b.note)+'</div></div>'
    +'<div class="card">'
    +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-   +'<div class="kv"><span>Cost</span><b>2&cent;, '+ms+' ms</b></div></div>';
+   +'<div class="kv"><span>Cost</span><b>'+costOf(r,"2&cent;")+', '+ms+' ms</b></div></div>';
  } catch(e){
   $("err-email").textContent=(e.message||String(e));
  } finally {
@@ -645,7 +674,7 @@ $("go-ip").onclick=async()=>{
    +'<div class="meta">'+esc(b.note)+'</div></div>'
    +'<div class="card">'
    +'<div class="kv"><span>Check reference</span><b><code>'+esc(r.record.reference)+'</code></b></div>'+txRow(r)
-   +'<div class="kv"><span>Cost</span><b>1&cent;, '+ms+' ms</b></div></div>';
+   +'<div class="kv"><span>Cost</span><b>'+costOf(r,"1&cent;")+', '+ms+' ms</b></div></div>';
  } catch(e){
   $("err-ip").textContent=(e.message||String(e));
  } finally {
